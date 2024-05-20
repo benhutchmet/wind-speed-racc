@@ -1,0 +1,7 @@
+output/*.err
+
+error/*.err
+
+power_curve/*.csv
+
+*.out
