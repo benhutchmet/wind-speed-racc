@@ -479,69 +479,17 @@ def create_wind_power_data(
         print("Last lat and lon of wind speed data:", ds_lat[-1], ds_lon[-1])
         print("Regridding the installed capacities data.")
 
-        # # Set up the resolution of the grid we are regridding to
-        # ds_res_lat = (max(ds_lat) - min(ds_lat)) / (len(ds_lat)-1)
-
-        # # Set up the resolution of the installed capacities grid
-        # ds_res_lon = (max(ds_lon) - min(ds_lon)) / (len(ds_lon)-1)
-
-        # # print the resolution of the installed capacities grid
-        # print("Resolution of the ds grid lat:", ds_res_lat)
-        # print("Resolution of the ds grid lon:", ds_res_lon)
-
         # convert ds from xarray object to iris object
         ds_cube = cubes_from_xarray(ds)
 
         # convert installed capacities from xarray object to iris object
         ic_cube = cubes_from_xarray(installed_capacities)
 
-        # # loop over the ds cube
-        # for cube in ds_cube:
-        #     print(f"ds cube: {cube}")
-        #     # print the cube
-        #     print(cube)
-
-        # # loop over the ic cube
-        # for cube in ic_cube:
-        #     print(f"ic cube: {cube}")
-        #     # print the cube
-        #     print(cube)
-
-        # # print the cube
-        # print(ds_cube)
-
-        # print the type of the cube
-        print(type(ds_cube))
-
-        # # print the cube
-        # print(ic_cube)
-
-        # print the type of the cube
-        print(type(ic_cube))
-
         # extract the bc_si100_name cube
-        bc_si100_cube = ds_cube.extract(bc_si100_name)
+        bc_si100_cube = ds_cube.extract(bc_si100_name)[0]
 
         # extract the totals cube
-        ic_cube = ic_cube.extract("totals")
-
-        # # loop over the cubes within the bc_si100_cube
-        # for cube in bc_si100_cube:
-        #     print(f"bc_si100_cube: {cube}")
-        #     # print the cube
-        #     print(cube)
-
-        # # loop over the cubes within the ic_cube
-        # for cube in ic_cube:
-        #     print(f"ic_cube: {cube}")
-        #     # print the cube
-        #     print(cube)
-
-        # convert the bc_si100_cube to an iris cube
-        bc_si100_cube = bc_si100_cube[0]
-
-        # convert the ic_cube to an iris cube
-        ic_cube = ic_cube[0]
+        ic_cube = ic_cube.extract("totals")[0]
 
         # if the coords
         if ic_cube.coords != bc_si100_cube.coords:
@@ -557,7 +505,6 @@ def create_wind_power_data(
         ic_cube.coord('latitude').attributes = bc_si100_cube.coord('latitude').attributes
         ic_cube.coord('longitude').attributes = bc_si100_cube.coord('longitude').attributes
 
-
         # print the types of these cubes
         print(f"bc_si100_cube: {bc_si100_cube}")
         print(f"ic_cube: {ic_cube}")
@@ -569,16 +516,6 @@ def create_wind_power_data(
         
         # print the regridded cube
         print(f"Regridded cube: {ic_cube_regrid}")
-
-        # print that we are exiting the function
-        print("----------------------")
-        print("Exiting the function.")
-        print("----------------------")
-
-        sys.exit()
-
-
-
 
     # Extract the values
     # Flip to get the correct order of lat lon
@@ -592,13 +529,13 @@ def create_wind_power_data(
         print("Loading in the onshore power curve.")
 
         # Load in the onshore power curve
-        power_curve = pd.read_csv(onshore_curve_file)
+        power_curve = pd.read_csv(onshore_curve_file, header=None)
 
     elif ons_ofs == "ofs":
         print("Loading in the offshore power curve.")
 
         # Load in the offshore power curve
-        power_curve = pd.read_csv(offshore_curve_file)
+        power_curve = pd.read_csv(offshore_curve_file, header=None)
     else:
         print("Invalid wind farm type. Please choose either onshore or offshore.")
         sys.exit()
@@ -623,8 +560,14 @@ def create_wind_power_data(
     # Add these to a new dataframe
     pc_df = pd.DataFrame({"Wind speed (m/s)": pc_winds, "Power (W)": pc_power})
 
+    print("Power curve dataframe:")
+    print("----------------------")
+
     # Print the shape of the dataframe
     print(pc_df.shape)
+
+    # print the head of the dataframe
+    print(pc_df.head())
 
     # print the power curve dataframe
     print(pc_df.tail())
@@ -644,10 +587,25 @@ def create_wind_power_data(
     # print the shape of the cfs arr
     print("CFs shape:", np.shape(cfs))
 
+    # Extract total MW as the array values of the installed capacities regrid
+    total_MW = ic_cube_regrid.data
+
+    # print the shape of the total MW
+    print("Total MW shape:", total_MW.shape)
+
+    # print pc_df again
+    print("Power curve dataframe head:", pc_df.head())
+
     # Loop over the time axis
     for i in tqdm(range(0, np.shape(wind_speed)[0]), desc="Creating wind power data"):
         # Extract the wind speed data for the current timestep
         wind_speed_vals_i = wind_speed_vals[i, :, :]
+
+        # print the shape of the wind speed values
+        print("Wind speed values shape:", np.shape(wind_speed_vals_i))
+
+        # Set any NaN values to zero
+        wind_speed_vals_i[np.isnan(wind_speed_vals_i)] = 0.0
 
         # reshape into a 1D array
         reshaped_wind_speed_vals = np.reshape(
@@ -655,16 +613,49 @@ def create_wind_power_data(
             [np.shape(wind_speed_vals_i)[0] * np.shape(wind_speed_vals_i)[1]],
         )
 
+        # print the reshaped wind speed values
+        print("Reshaped wind speed values:", reshaped_wind_speed_vals)
+
+        # print the shape of the reshaped wind speed values
+        print("Reshaped wind speed values shape:", np.shape(reshaped_wind_speed_vals))
+
+        # print pc_df["Wind speed (m/s)"]
+        print("Power curve wind speed values:", pc_df["Wind speed (m/s)"])
+
         # Categorise each wind speed value into a power output
         cfs_i = np.digitize(
             reshaped_wind_speed_vals, pc_df["Wind speed (m/s)"], right=False
         )
 
+        # print the power value for the first index in cfs_i
+        print("Power value for first index in cfs_i:", pc_df["Power (W)"][cfs_i[0]])
+
+        # Print the shape of the cfs_i array
+        print("CFs_i shape:", np.shape(cfs_i))
+
+        print("CFs_i:", cfs_i)
+
         # Make sure the bins don't go out of range
         cfs_i[cfs_i == len(pc_df)] = len(pc_df) - 1
 
+        # print the shape of the cfs_i array
+        print("CFs_i shape:", np.shape(cfs_i))
+
+        # print the cfs_i array
+        print("CFs_i:", cfs_i)
+
+        # convert pc_df["Power (W)"] to a numpy array of values
+        pc_power_vals = pc_df["Power (W)"].values
+
+        # print the things wew are subseting in p_bins
+        print("pc_power_vals[cfs_i]:", pc_power_vals[cfs_i])
+        print("pc_power_vals[cfs_i - 1]:", pc_power_vals[cfs_i - 1])
+
         # Calculate the average power output for each bin
-        p_bins = 0.5 * (pc_df["Power (W)"][cfs_i] + pc_df["Power (W)"][cfs_i - 1])
+        p_bins = 0.5 * (pc_power_vals[cfs_i] + pc_power_vals[cfs_i - 1])
+
+        # print the shape of the power bins
+        print("Power bins shape:", np.shape(p_bins))
 
         # Reshape the power output array
         cfs_i = np.reshape(
@@ -677,7 +668,7 @@ def create_wind_power_data(
         # Multiply by the installed capacity in MW
         cfs[i, :, :] = cfs_i * total_MW
 
-    return None
+    return cfs
 
 
 # define the main function
@@ -703,10 +694,22 @@ def main():
     )
 
     # Create the wind power data
-    create_wind_power_data(
+    cfs = create_wind_power_data(
         ds=ds,
         ons_ofs="ons",
     )
+
+    # print the shape of the cfs
+    print("CFs shape:", np.shape(cfs))
+
+    # extract the first time step
+    cfs_i = cfs[0, :, :]
+
+    # Convert the array to a pandas dataframe
+    cfs_df = pd.DataFrame(cfs_i)
+
+    # Save the dataframe to a csv file
+    cfs_df.to_csv(f"/home/users/pn832950/100m_wind/csv_files/UK_wind_power_data_{last_year}_{last_month}.csv")
 
     # print the data
     print("-------------------")
