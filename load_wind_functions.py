@@ -693,6 +693,16 @@ def save_wind_power_data(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    # set up the path
+    output_path = os.path.join(
+        output_dir,
+        f"{country_name}_wind_power_data_{ons_ofs}_{first_year}_{first_month}-{last_year}_{last_month}.csv",
+    )
+
+    if os.path.exists(output_path):
+        print(f"File {output_path} already exists.")
+        sys.exit()
+
     # Save the data
     cfs_df.to_csv(
         os.path.join(
