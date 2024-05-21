@@ -18,6 +18,9 @@ import geopandas as gpd
 import regionmask
 from tqdm import tqdm
 
+# Specific imports
+from ncdata.iris_xarray import cubes_to_xarray, cubes_from_xarray
+
 
 # Define a function to load the 100m wind speed data from the CLEARHEADS and S2S4E directories
 # S2S4E - ERA5_1hr_2020_12_DET.nc
@@ -476,15 +479,105 @@ def create_wind_power_data(
         print("Last lat and lon of wind speed data:", ds_lat[-1], ds_lon[-1])
         print("Regridding the installed capacities data.")
 
-        # Set up the resolution of the grid we are regridding to
-        ds_res_lat = (max(ds_lat) - min(ds_lat)) / (len(ds_lat)-1)
+        # # Set up the resolution of the grid we are regridding to
+        # ds_res_lat = (max(ds_lat) - min(ds_lat)) / (len(ds_lat)-1)
 
-        # Set up the resolution of the installed capacities grid
-        ds_res_lon = (max(ds_lon) - min(ds_lon)) / (len(ds_lon)-1)
+        # # Set up the resolution of the installed capacities grid
+        # ds_res_lon = (max(ds_lon) - min(ds_lon)) / (len(ds_lon)-1)
 
-        # print the resolution of the installed capacities grid
-        print("Resolution of the ds grid lat:", ds_res_lat)
-        print("Resolution of the ds grid lon:", ds_res_lon)
+        # # print the resolution of the installed capacities grid
+        # print("Resolution of the ds grid lat:", ds_res_lat)
+        # print("Resolution of the ds grid lon:", ds_res_lon)
+
+        # convert ds from xarray object to iris object
+        ds_cube = cubes_from_xarray(ds)
+
+        # convert installed capacities from xarray object to iris object
+        ic_cube = cubes_from_xarray(installed_capacities)
+
+        # # loop over the ds cube
+        # for cube in ds_cube:
+        #     print(f"ds cube: {cube}")
+        #     # print the cube
+        #     print(cube)
+
+        # # loop over the ic cube
+        # for cube in ic_cube:
+        #     print(f"ic cube: {cube}")
+        #     # print the cube
+        #     print(cube)
+
+        # # print the cube
+        # print(ds_cube)
+
+        # print the type of the cube
+        print(type(ds_cube))
+
+        # # print the cube
+        # print(ic_cube)
+
+        # print the type of the cube
+        print(type(ic_cube))
+
+        # extract the bc_si100_name cube
+        bc_si100_cube = ds_cube.extract(bc_si100_name)
+
+        # extract the totals cube
+        ic_cube = ic_cube.extract("totals")
+
+        # # loop over the cubes within the bc_si100_cube
+        # for cube in bc_si100_cube:
+        #     print(f"bc_si100_cube: {cube}")
+        #     # print the cube
+        #     print(cube)
+
+        # # loop over the cubes within the ic_cube
+        # for cube in ic_cube:
+        #     print(f"ic_cube: {cube}")
+        #     # print the cube
+        #     print(cube)
+
+        # convert the bc_si100_cube to an iris cube
+        bc_si100_cube = bc_si100_cube[0]
+
+        # convert the ic_cube to an iris cube
+        ic_cube = ic_cube[0]
+
+        # if the coords
+        if ic_cube.coords != bc_si100_cube.coords:
+            # rename lat and lon to latitude and longitude
+            ic_cube.coord("lat").rename("latitude")
+            ic_cube.coord("lon").rename("longitude")
+
+        # Ensure the units of the coordinates match
+        ic_cube.coord('latitude').units = bc_si100_cube.coord('latitude').units
+        ic_cube.coord('longitude').units = bc_si100_cube.coord('longitude').units
+
+        # Ensure the attributes of the coordinates match
+        ic_cube.coord('latitude').attributes = bc_si100_cube.coord('latitude').attributes
+        ic_cube.coord('longitude').attributes = bc_si100_cube.coord('longitude').attributes
+
+
+        # print the types of these cubes
+        print(f"bc_si100_cube: {bc_si100_cube}")
+        print(f"ic_cube: {ic_cube}")
+        print(f"bc_si100_cube type: {type(bc_si100_cube)}")
+        print(f"ic_cube type: {type(ic_cube)}")
+
+        # regrid the installed capacities to the same grid as the wind speed data
+        ic_cube_regrid = ic_cube.regrid(bc_si100_cube, iris.analysis.Linear())
+        
+        # print the regridded cube
+        print(f"Regridded cube: {ic_cube_regrid}")
+
+        # print that we are exiting the function
+        print("----------------------")
+        print("Exiting the function.")
+        print("----------------------")
+
+        sys.exit()
+
+
 
 
     # Extract the values
