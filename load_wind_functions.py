@@ -35,6 +35,7 @@ def load_wind_data(
     engine: str = "netcdf4",
     parallel: bool = True,
     bias_correct: bool = True,
+    bias_correct_file: str = "/home/users/pn832950/UREAD_energy_models_demo_scripts/ERA5_turbine_array_total_BC_v16_hourly.nc",
 ):
     """
     Load the 100m wind speed data from the CLEARHEADS and S2S4E directories.
@@ -68,6 +69,9 @@ def load_wind_data(
 
     bias_correct : bool
         Whether to use Hannah's bias correction for onshore and offshore wind speeds.
+
+    bias_correct_file : str
+        The file containing the bias correction data.
 
     Returns
     -------
@@ -111,7 +115,6 @@ def load_wind_data(
         combine="by_coords",
         preprocess=lambda ds: preprocess(
             ds,
-            bias_correct=bias_correct,
         ),
         engine=engine,
         parallel=parallel,
@@ -125,6 +128,46 @@ def load_wind_data(
 
     # Take a daily mean
     ds = ds.resample(time="D").mean()
+
+    # if bias correction is required
+    if bias_correct:
+        # Load the bias correction data
+        bc = xr.open_dataset(bias_correct_file)
+
+        # Convert the DataArrays to numpy arrays
+        si100_name_np = ds["si100"].values
+        bc_totals_np = bc["totals"].values
+
+        # create a new numpy array to store the result
+        si100_bc_np = np.zeros(np.shape(si100_name_np))
+
+        # Perform the addition
+        # TODO: Is there an issue with bias correcting daily data here?
+        for i in tqdm(
+            range(np.shape(si100_name_np)[0]), desc="Applying bias correction"
+        ):
+            si100_bc_np[i, :, :] = si100_name_np[i, :, :] + bc_totals_np
+
+        # Convert the result back to an xarray DataArray
+        si100_bc = xr.DataArray(
+            data=si100_bc_np,
+            dims=ds["si100"].dims,
+            coords=ds["si100"].coords,
+        )
+
+        # Add the new DataArray to the dataset
+        ds = ds.assign(si100_bc=si100_bc)
+
+        # Set up the variables
+        # Power law exponent from UK windpower.net 2021 onshore wind farm heights
+        ds["si100_ons"] = ds["si100_bc"] * (71.0 / 100.0) ** (1.0 / 7.0)
+
+        # Same but for offshore
+        # Average height of offshore wind farms
+        ds["si100_ofs"] = ds["si100_bc"] * (92.0 / 100.0) ** (1.0 / 7.0)
+
+        # Drop si100 in favour of si100_ons and si100_ofs
+        ds = ds.drop_vars(["si100"])
 
     return ds
 
@@ -140,8 +183,6 @@ def preprocess(
     si10_name="si10",
     t2m_name="t2m",
     msl_name="msl",
-    bias_correct: bool = False,
-    bias_correct_file: str = "/home/users/pn832950/UREAD_energy_models_demo_scripts/ERA5_turbine_array_total_BC_v16_hourly.nc",
 ) -> xr.Dataset:
     """
     Preprocess the data.
@@ -176,12 +217,6 @@ def preprocess(
     msl_name : str
         The name of the mean sea level pressure.
 
-    bias_correct : bool
-        Whether or not to apply Hannah's bias correction.
-
-    bias_correct_file : str
-        The file containing the bias correction data.
-
     Returns
     -------
 
@@ -191,45 +226,6 @@ def preprocess(
 
     # Calculate the wind speed at 100m
     ds[si100_name] = np.sqrt(ds[u100_name] ** 2 + ds[v100_name] ** 2)
-
-    # If bias correction is required
-    if bias_correct:
-        # Load the bias correction data
-        bc = xr.open_dataset(bias_correct_file)
-
-        # Convert the DataArrays to numpy arrays
-        si100_name_np = ds[si100_name].values
-        bc_totals_np = bc["totals"].values
-
-        # create a new numpy array to store the result
-        si100_bc_np = np.zeros(np.shape(si100_name_np))
-
-        # Perform the addition
-        for i in tqdm(
-            range(np.shape(si100_name_np)[0]), desc="Applying bias correction"
-        ):
-            si100_bc_np[i, :, :] = si100_name_np[i, :, :] + bc_totals_np
-
-        # Convert the result back to an xarray DataArray
-        si100_bc = xr.DataArray(
-            data=si100_bc_np,
-            dims=ds[si100_name].dims,
-            coords=ds[si100_name].coords,
-        )
-
-        # Add the new DataArray to the dataset
-        ds = ds.assign(si100_bc=si100_bc)
-
-        # Set up the variables
-        # Power law exponent from UK windpower.net 2021 onshore wind farm heights
-        ds["si100_ons"] = ds["si100_bc"] * (71.0 / 100.0) ** (1.0 / 7.0)
-
-        # Same but for offshore
-        # Average height of offshore wind farms in the UK 2021 from UK windpower.net
-        ds["si100_ofs"] = ds["si100_bc"] * (92.0 / 100.0) ** (1.0 / 7.0)
-
-        # Drop si100_name  in favour of si100_ons and si100_ofs
-        ds = ds.drop_vars([si100_name])
 
     # Calculate the wind speed at 10m
     ds[si10_name] = np.sqrt(ds[u10_name] ** 2 + ds[v10_name] ** 2)
@@ -449,6 +445,7 @@ def create_wind_power_data(
     """
 
     # TODO: Get the correct installed capacities
+    # Think this is onshore?
     # Form the filepath
     installed_capacities_file = os.path.join(
         installed_capacities_dir, f"{country}windfarm_dist.nc"
@@ -472,12 +469,9 @@ def create_wind_power_data(
     # if the lats and lons are not the same, interpolate the installed capacities
     if not np.array_equal(ic_lat, ds_lat) or not np.array_equal(ic_lon, ds_lon):
         print("Lats and lons are not the same.")
-        print("Interpolating installed capacities to the same grid as the wind speed data.")
-        print("First lat and lon of installed capacities:", ic_lat[0], ic_lon[0])
-        print("First lat and lon of wind speed data:", ds_lat[0], ds_lon[0])
-        print("Last lat and lon of installed capacities:", ic_lat[-1], ic_lon[-1])
-        print("Last lat and lon of wind speed data:", ds_lat[-1], ds_lon[-1])
-        print("Regridding the installed capacities data.")
+        print(
+            "Interpolating installed capacities to the same grid as the wind speed data."
+        )
 
         # convert ds from xarray object to iris object
         ds_cube = cubes_from_xarray(ds)
@@ -498,24 +492,19 @@ def create_wind_power_data(
             ic_cube.coord("lon").rename("longitude")
 
         # Ensure the units of the coordinates match
-        ic_cube.coord('latitude').units = bc_si100_cube.coord('latitude').units
-        ic_cube.coord('longitude').units = bc_si100_cube.coord('longitude').units
+        ic_cube.coord("latitude").units = bc_si100_cube.coord("latitude").units
+        ic_cube.coord("longitude").units = bc_si100_cube.coord("longitude").units
 
         # Ensure the attributes of the coordinates match
-        ic_cube.coord('latitude').attributes = bc_si100_cube.coord('latitude').attributes
-        ic_cube.coord('longitude').attributes = bc_si100_cube.coord('longitude').attributes
-
-        # print the types of these cubes
-        print(f"bc_si100_cube: {bc_si100_cube}")
-        print(f"ic_cube: {ic_cube}")
-        print(f"bc_si100_cube type: {type(bc_si100_cube)}")
-        print(f"ic_cube type: {type(ic_cube)}")
+        ic_cube.coord("latitude").attributes = bc_si100_cube.coord(
+            "latitude"
+        ).attributes
+        ic_cube.coord("longitude").attributes = bc_si100_cube.coord(
+            "longitude"
+        ).attributes
 
         # regrid the installed capacities to the same grid as the wind speed data
         ic_cube_regrid = ic_cube.regrid(bc_si100_cube, iris.analysis.Linear())
-        
-        # print the regridded cube
-        print(f"Regridded cube: {ic_cube_regrid}")
 
     # Extract the values
     # Flip to get the correct order of lat lon
@@ -540,14 +529,8 @@ def create_wind_power_data(
         print("Invalid wind farm type. Please choose either onshore or offshore.")
         sys.exit()
 
-    # print the head of the dataframe
-    print(power_curve.head())
-
     # Add column names to the power curve
     power_curve.columns = ["Wind speed (m/s)", "Power (W)"]
-
-    # Print the power curve head
-    print(power_curve.head())
 
     # Generate an array for wind speeds
     pc_winds = np.linspace(0, 50, 501)
@@ -560,18 +543,6 @@ def create_wind_power_data(
     # Add these to a new dataframe
     pc_df = pd.DataFrame({"Wind speed (m/s)": pc_winds, "Power (W)": pc_power})
 
-    print("Power curve dataframe:")
-    print("----------------------")
-
-    # Print the shape of the dataframe
-    print(pc_df.shape)
-
-    # print the head of the dataframe
-    print(pc_df.head())
-
-    # print the power curve dataframe
-    print(pc_df.tail())
-
     # Extract the wind speed data from the dataset
     wind_speed = ds[bc_si100_name].values
 
@@ -581,28 +552,13 @@ def create_wind_power_data(
     # Create an empty array to store the power data
     cfs = np.zeros(np.shape(wind_speed))
 
-    # print the shape of the wind speed values
-    print("Wind speed values shape:", np.shape(wind_speed_vals))
-
-    # print the shape of the cfs arr
-    print("CFs shape:", np.shape(cfs))
-
     # Extract total MW as the array values of the installed capacities regrid
     total_MW = ic_cube_regrid.data
-
-    # print the shape of the total MW
-    print("Total MW shape:", total_MW.shape)
-
-    # print pc_df again
-    print("Power curve dataframe head:", pc_df.head())
 
     # Loop over the time axis
     for i in tqdm(range(0, np.shape(wind_speed)[0]), desc="Creating wind power data"):
         # Extract the wind speed data for the current timestep
         wind_speed_vals_i = wind_speed_vals[i, :, :]
-
-        # print the shape of the wind speed values
-        print("Wind speed values shape:", np.shape(wind_speed_vals_i))
 
         # Set any NaN values to zero
         wind_speed_vals_i[np.isnan(wind_speed_vals_i)] = 0.0
@@ -613,49 +569,19 @@ def create_wind_power_data(
             [np.shape(wind_speed_vals_i)[0] * np.shape(wind_speed_vals_i)[1]],
         )
 
-        # print the reshaped wind speed values
-        print("Reshaped wind speed values:", reshaped_wind_speed_vals)
-
-        # print the shape of the reshaped wind speed values
-        print("Reshaped wind speed values shape:", np.shape(reshaped_wind_speed_vals))
-
-        # print pc_df["Wind speed (m/s)"]
-        print("Power curve wind speed values:", pc_df["Wind speed (m/s)"])
-
         # Categorise each wind speed value into a power output
         cfs_i = np.digitize(
             reshaped_wind_speed_vals, pc_df["Wind speed (m/s)"], right=False
         )
 
-        # print the power value for the first index in cfs_i
-        print("Power value for first index in cfs_i:", pc_df["Power (W)"][cfs_i[0]])
-
-        # Print the shape of the cfs_i array
-        print("CFs_i shape:", np.shape(cfs_i))
-
-        print("CFs_i:", cfs_i)
-
         # Make sure the bins don't go out of range
         cfs_i[cfs_i == len(pc_df)] = len(pc_df) - 1
-
-        # print the shape of the cfs_i array
-        print("CFs_i shape:", np.shape(cfs_i))
-
-        # print the cfs_i array
-        print("CFs_i:", cfs_i)
 
         # convert pc_df["Power (W)"] to a numpy array of values
         pc_power_vals = pc_df["Power (W)"].values
 
-        # print the things wew are subseting in p_bins
-        print("pc_power_vals[cfs_i]:", pc_power_vals[cfs_i])
-        print("pc_power_vals[cfs_i - 1]:", pc_power_vals[cfs_i - 1])
-
         # Calculate the average power output for each bin
         p_bins = 0.5 * (pc_power_vals[cfs_i] + pc_power_vals[cfs_i - 1])
-
-        # print the shape of the power bins
-        print("Power bins shape:", np.shape(p_bins))
 
         # Reshape the power output array
         cfs_i = np.reshape(
@@ -668,15 +594,128 @@ def create_wind_power_data(
         # Multiply by the installed capacity in MW
         cfs[i, :, :] = cfs_i * total_MW
 
+    # Where cfs are 0.0, set to NaN
+    cfs[cfs == 0.0] = np.nan
+
+    # Take the spatial mean
+    cfs = np.nanmean(cfs, axis=(1, 2))
+
     return cfs
 
+# define a function to form the dataframe for the wind power data
+def form_wind_power_dataframe(
+    cfs: np.ndarray,
+    ds: xr.Dataset,
+    country_name: str,
+) -> pd.DataFrame:
+    """
+    Form the dataframe for the wind power data.
 
+    Parameters
+    ----------
+
+    cfs : np.ndarray
+        The array of wind power capacity factors.
+
+    ds : xr.Dataset
+        The dataset containing the wind speed data.
+
+    country_name : str
+        The name of the country.
+
+    Returns
+    -------
+
+    cfs_df : pd.DataFrame
+        The dataframe containing the wind power data.
+
+    """
+
+    # Extract the time values
+    time = ds["time"].values
+
+    # Format the time values as datetime objects
+    time = pd.to_datetime(time)
+
+    # Create a dataframe with the time values and an index
+    cfs_df = pd.DataFrame(cfs, index=time)
+
+    # Set the column name
+    cfs_df.columns = [f"{country_name}_wind_power"]
+
+    return cfs_df
+
+# Write a function to save the wind power data to a csv file
+def save_wind_power_data(
+    cfs_df: pd.DataFrame,
+    output_dir: str,
+    country_name: str,
+    first_year: int,
+    first_month: int,
+    last_year: int,
+    last_month: int,
+    ons_ofs: str = "ons",
+) -> None:
+    """
+    Save the wind power data to a csv file.
+
+    Parameters
+    ----------
+
+    cfs_df : pd.DataFrame
+        The dataframe containing the wind power data.
+
+    output_dir : str
+        The directory to save the file in.
+
+    country_name : str
+        The name of the country.
+
+    first_year : int
+        The first year of the data.
+
+    first_month : int
+        The first month of the data.
+
+    last_year : int
+        The last year of the data.
+
+    last_month : int
+        The last month of the data.
+
+    Returns
+
+    None
+
+    """
+
+    # Create the output directory if it does not exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Save the data
+    cfs_df.to_csv(
+        os.path.join(
+            output_dir,
+            f"{country_name}_wind_power_data_{ons_ofs}_{first_year}_{first_month}-{last_year}_{last_month}.csv",
+        )
+    )
+
+    print(f"Wind power data saved to {output_dir}.")
+
+    return None
+
+
+# Submit this as batch job - array 1950..2020 for reanalysis data
 # define the main function
 def main():
     # Set up the parameters
     # Just load in a single month of data in this test case
     last_year = 1950
-    last_month = 1
+    last_month = 12
+    country = "United Kingdom"
+    country_name = "United_Kingdom"
+    ons_ofs = "ons"
 
     # load the wind data
     ds = load_wind_data(
@@ -690,31 +729,53 @@ def main():
     # Apply the mask
     ds = apply_country_mask(
         ds=ds,
-        country="United Kingdom",
+        country=country,
     )
 
     # Create the wind power data
     cfs = create_wind_power_data(
         ds=ds,
-        ons_ofs="ons",
+        ons_ofs=ons_ofs,
     )
 
-    # print the shape of the cfs
-    print("CFs shape:", np.shape(cfs))
+    # # print the shape of the cfs
+    # print("CFs shape:", np.shape(cfs))
 
-    # extract the first time step
-    cfs_i = cfs[0, :, :]
+    # # print the values of the cfs
+    # print("CFs values:", cfs)
 
-    # Convert the array to a pandas dataframe
-    cfs_df = pd.DataFrame(cfs_i)
+    # # Form the dataframe
+    cfs_df = form_wind_power_dataframe(
+        cfs=cfs,
+        ds=ds,
+        country_name=country_name,
+    )
 
-    # Save the dataframe to a csv file
-    cfs_df.to_csv(f"/home/users/pn832950/100m_wind/csv_files/UK_wind_power_data_{last_year}_{last_month}.csv")
+    # Save the wind power data frame
+    save_wind_power_data(
+        cfs_df=cfs_df,
+        output_dir="/storage/silver/clearheads/Ben/csv_files/wind_power/",
+        country_name=country_name,
+        first_year=1950,
+        first_month=1,
+        last_year=last_year,
+        last_month=last_month,
+        ons_ofs=ons_ofs,
+    )
 
-    # print the data
-    print("-------------------")
-    print(ds)
-    print("-------------------")
+    # # extract the first time step
+    # cfs_i = cfs[0, :, :]
+
+    # # Convert the array to a pandas dataframe
+    # cfs_df = pd.DataFrame(cfs_i)
+
+    # # Save the dataframe to a csv file
+    # cfs_df.to_csv(f"/home/users/pn832950/100m_wind/csv_files/UK_wind_power_data_{last_year}_{last_month}.csv")
+
+    # # print the data
+    # print("-------------------")
+    # print(ds)
+    # print("-------------------")
 
     # # print that we are exiting the function
     print("Exiting the function.")
