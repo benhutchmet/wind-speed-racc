@@ -7,6 +7,7 @@ Thanks to Hannah for downloading all of the data!
 import os
 import sys
 import glob
+import argparse
 
 import numpy as np
 import pandas as pd
@@ -719,6 +720,9 @@ def save_wind_power_data(
 # Submit this as batch job - array 1950..2020 for reanalysis data
 # define the main function
 def main():
+    # Set up the argument parser
+    
+    
     # Set up the parameters
     # Just load in a single month of data in this test case
     last_year = 1950
