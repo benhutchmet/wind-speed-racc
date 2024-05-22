@@ -7,3 +7,5 @@ power_curve/*.csv
 *.out
 
 csv_files/*.csv
+
+__pycache__/*.pyc

@@ -13,7 +13,7 @@ Usage:
 Example:
 --------
 
-    python process_wind_data.py United_Kingdom 2015
+    python process_wind_data.py United Kingdom 2015
 
 Inputs:
 -------
