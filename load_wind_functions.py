@@ -603,6 +603,7 @@ def create_wind_power_data(
 
     return cfs
 
+
 # define a function to form the dataframe for the wind power data
 def form_wind_power_dataframe(
     cfs: np.ndarray,
@@ -645,6 +646,7 @@ def form_wind_power_dataframe(
     cfs_df.columns = [f"{country_name}_wind_power"]
 
     return cfs_df
+
 
 # Write a function to save the wind power data to a csv file
 def save_wind_power_data(
@@ -721,8 +723,7 @@ def save_wind_power_data(
 # define the main function
 def main():
     # Set up the argument parser
-    
-    
+
     # Set up the parameters
     # Just load in a single month of data in this test case
     last_year = 1950

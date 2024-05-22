@@ -44,6 +44,7 @@ import argparse
 # Import the functions from the load_wind_functions.py file
 import load_wind_functions as lwf
 
+
 # Define the main function
 def main():
     """
@@ -64,15 +65,21 @@ def main():
     # Set up the hard-coded variables
     first_month = 1
     last_month = 12
-    ons_ofs = "ons" # For now we don't have correct power curves
+    ons_ofs = "ons"  # For now we don't have correct power curves
     output_dir = "/storage/silver/clearheads/Ben/csv_files/wind_power/"
 
     # Parse the CLIs
     parser = argparse.ArgumentParser()
 
     # Add the arguments
-    parser.add_argument("country", help="Name of the country for which the data is to be processed.", type=str)
-    parser.add_argument("year", help="Year for which the data is to be processed.", type=int)
+    parser.add_argument(
+        "country",
+        help="Name of the country for which the data is to be processed.",
+        type=str,
+    )
+    parser.add_argument(
+        "year", help="Year for which the data is to be processed.", type=int
+    )
 
     # Print the year and country we are processing
     args = parser.parse_args()
@@ -130,6 +137,7 @@ def main():
     print("Process complete.")
 
     return None
+
 
 # Call the main function
 if __name__ == "__main__":
