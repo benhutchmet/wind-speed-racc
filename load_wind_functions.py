@@ -23,6 +23,69 @@ from tqdm import tqdm
 from ncdata.iris_xarray import cubes_to_xarray, cubes_from_xarray
 
 
+# Define the function for preprocessing the data
+def preprocess(
+    ds: xr.Dataset,
+    u100_name="u100",
+    v100_name="v100",
+    si100_name="si100",
+    u10_name="u10",
+    v10_name="v10",
+    si10_name="si10",
+    t2m_name="t2m",
+    msl_name="msl",
+) -> xr.Dataset:
+    """
+    Preprocess the data.
+
+    Parameters
+    ----------
+
+    ds : xarray.Dataset
+        The dataset to be preprocessed.
+
+    u100_name : str
+        The name of the zonal wind component.
+
+    v100_name : str
+        The name of the meridional wind component.
+
+    si100_name : str
+        The name of the wind speed at 100m to be output.
+
+    u10_name : str
+        The name of the zonal wind component at 10m.
+
+    v10_name : str
+        The name of the meridional wind component at 10m.
+
+    si10_name : str
+        The name of the wind speed at 10m to be output.
+
+    t2m_name : str
+        The name of the 2m temperature.
+
+    msl_name : str
+        The name of the mean sea level pressure.
+
+    Returns
+    -------
+
+    ds : xarray.Dataset
+
+    """
+
+    # Calculate the wind speed at 100m
+    ds[si100_name] = np.sqrt(ds[u100_name] ** 2 + ds[v100_name] ** 2)
+
+    # Calculate the wind speed at 10m
+    ds[si10_name] = np.sqrt(ds[u10_name] ** 2 + ds[v10_name] ** 2)
+
+    # Drop the other variables
+    ds = ds.drop_vars([u100_name, v100_name, u10_name, v10_name, t2m_name, msl_name])
+
+    return ds
+
 # Define a function to load the 100m wind speed data from the CLEARHEADS and S2S4E directories
 # S2S4E - ERA5_1hr_2020_12_DET.nc
 # CLEARHEADS - ERA5_1hr_1978_12_DET.nc
@@ -37,6 +100,7 @@ def load_wind_data(
     parallel: bool = True,
     bias_correct: bool = True,
     bias_correct_file: str = "/home/users/pn832950/UREAD_energy_models_demo_scripts/ERA5_turbine_array_total_BC_v16_hourly.nc",
+    preprocess: callable = preprocess,
 ):
     """
     Load the 100m wind speed data from the CLEARHEADS and S2S4E directories.
@@ -114,9 +178,7 @@ def load_wind_data(
     ds = xr.open_mfdataset(
         ERA5_files,
         combine="by_coords",
-        preprocess=lambda ds: preprocess(
-            ds,
-        ),
+        preprocess=lambda ds: preprocess(ds),
         engine=engine,
         parallel=parallel,
         coords="minimal",
@@ -173,20 +235,17 @@ def load_wind_data(
     return ds
 
 
-# Define the function for preprocessing the data
-def preprocess(
+# define another preprocessing function for temperature
+def preprocess_temp(
     ds: xr.Dataset,
+    msl_name="msl",
     u100_name="u100",
     v100_name="v100",
-    si100_name="si100",
     u10_name="u10",
     v10_name="v10",
-    si10_name="si10",
-    t2m_name="t2m",
-    msl_name="msl",
 ) -> xr.Dataset:
     """
-    Preprocess the data.
+    Preprocess the temperature data.
 
     Parameters
     ----------
@@ -194,14 +253,14 @@ def preprocess(
     ds : xarray.Dataset
         The dataset to be preprocessed.
 
+    msl_name : str
+        The name of the mean sea level pressure.
+
     u100_name : str
-        The name of the zonal wind component.
+        The name of the zonal wind component at 100m.
 
     v100_name : str
-        The name of the meridional wind component.
-
-    si100_name : str
-        The name of the wind speed at 100m to be output.
+        The name of the meridional wind component at 100m.
 
     u10_name : str
         The name of the zonal wind component at 10m.
@@ -209,30 +268,16 @@ def preprocess(
     v10_name : str
         The name of the meridional wind component at 10m.
 
-    si10_name : str
-        The name of the wind speed at 10m to be output.
-
-    t2m_name : str
-        The name of the 2m temperature.
-
-    msl_name : str
-        The name of the mean sea level pressure.
-
     Returns
     -------
 
     ds : xarray.Dataset
+        The preprocessed dataset.
 
     """
 
-    # Calculate the wind speed at 100m
-    ds[si100_name] = np.sqrt(ds[u100_name] ** 2 + ds[v100_name] ** 2)
-
-    # Calculate the wind speed at 10m
-    ds[si10_name] = np.sqrt(ds[u10_name] ** 2 + ds[v10_name] ** 2)
-
-    # Drop the other variables
-    ds = ds.drop_vars([u100_name, v100_name, u10_name, v10_name, t2m_name, msl_name])
+    # Drop the mean sea level pressure
+    ds = ds.drop_vars([msl_name, u100_name, v100_name, u10_name, v10_name])
 
     return ds
 
