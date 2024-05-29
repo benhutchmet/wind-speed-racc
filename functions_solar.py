@@ -33,6 +33,8 @@ def solar_PV_model(
     eff_reff: float = 0.9,
     beta_ref: float = 0.0042,
     G_ref: float = 1000.0,
+    UK_solar_farm_dist_file: str = None,
+    EU_solar_farm_dist_file: str = None,
 ) -> pd.DataFrame:
     """
     Function to process the solar power output using the temperature and rsds data.
@@ -67,6 +69,12 @@ def solar_PV_model(
     G_ref: float
         The reference solar irradiance for the solar power model.
 
+    UK_solar_farm_dist_file: str
+        The file containing the distribution of solar farms in the UK.
+
+    EU_solar_farm_dist_file: str
+        The file containing the distribution of solar farms in the EU.
+
     Returns
     -------
 
@@ -74,6 +82,14 @@ def solar_PV_model(
         The DataFrame containing the solar power output.
 
     """
+
+    if UK_solar_farm_dist_file is not None:
+        # not implemented yet error
+        print("UK_solar_farm_dist_file not implemented yet.")
+
+    if EU_solar_farm_dist_file is not None:
+        # not implemented yet error
+        print("EU_solar_farm_dist_file not implemented yet.")
 
     # apply the country mask to the temp data
     temp_country = lwf.apply_country_mask(
@@ -89,6 +105,9 @@ def solar_PV_model(
         pop_weights=0,
     )
 
+    # Load the country mask
+    mask = lwf.load_country_mask(country)
+
     # Apply the conversions to the data
     # Convert the temperature data from Kelvin to Celsius
     temp_country_data = temp_country.values - 273.15
@@ -96,8 +115,22 @@ def solar_PV_model(
     # Convert the rsds data from J/m^2 to W/m^2
     rsds_country_data = rsds_country.values / 3600
 
-    
+    # Calculate the relative efficiency of the panel
+    rel_eff_panel = eff_reff * (1 - beta_ref * (temp_country_data - T_ref))
 
+    # Calculate the capacity factor of panel
+    cap_fac_panel = np.nan_to_num(rel_eff_panel * (rsds_country_data / G_ref))
+
+    # Calculate the spatial mean solar cf
+    spatial_mean_solar_cf = np.zeros([len(cap_fac_panel)])
+
+    # Loop over the time steps
+    # Any weighted averaging here?
+    for i in range(0, len(cap_fac_panel)):
+        # Calculate the mean of the capacity factor
+        spatial_mean_solar_cf[i] = np.nanmean(cap_fac_panel[i, :, :])
+    
+    
     return df
 
 
@@ -105,8 +138,8 @@ def main():
     print("Processing solar power output using t2m and rsds data.")
 
     # Hard code the years for testing
-    first_year = 1950
-    last_year = 1950
+    first_year = 1960
+    last_year = 1960
     last_month = 1
     first_month = 1
 
@@ -137,6 +170,8 @@ def main():
         last_month=last_month,
         first_year=first_year,
         first_month=first_month,
+        S2S4E_dir=S2S4E_dir_rsds,
+        CLEARHEADS_dir=CLEARHEADS_dir_rsds,
         parallel=False,  # will take a while to run
         bias_correct_wind=False,
         preprocess=lwf.preprocess_rsds,
@@ -151,13 +186,12 @@ def main():
         if country in ["Macedonia"]:
             print(f"Skipping {country}")
 
-        #
-
-    # Load the data for t2m
-
-    # load the data for rsds
-
-    # pass through solar power function
+        # pass the data to the solar_PV_model function
+        df = solar_PV_model(
+            ds_temp=t2m,
+            ds_rsds=rsds,
+            country=country,
+        )
 
 
 if __name__ == "__main__":

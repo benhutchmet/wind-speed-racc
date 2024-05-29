@@ -162,7 +162,7 @@ def load_obs_data(
                 # Choose the directory based on the year
                 directory = CLEARHEADS_dir if year < 1979 else S2S4E_dir
                 # glob the files in the chosen directory
-                for file in glob.glob(directory + f"ERA5_1hr_{year}_{month}_DET.nc"):
+                for file in glob.glob(directory + f"ERA5_1hr*{year}_{month}*DET.nc"):
                     ERA5_files.append(file)
         else:
             for month in range(1, 13):
@@ -173,7 +173,7 @@ def load_obs_data(
                 # Choose the directory based on the year
                 directory = CLEARHEADS_dir if year < 1979 else S2S4E_dir
                 # glob the files in the chosen directory
-                for file in glob.glob(directory + f"ERA5_1hr_{year}_{month}_DET.nc"):
+                for file in glob.glob(directory + f"ERA5_1hr*{year}_{month}*DET.nc"):
                     ERA5_files.append(file)
 
     # Print the length of the list
@@ -407,6 +407,69 @@ def apply_country_mask(
 
     return out_ds
 
+# define a function to return a country mask with 1's where the country is 
+# and 0's where it isn't
+def load_country_mask(
+        country: str,
+        pop_weights: int = 0,
+) -> xr.Dataset:
+    """
+    Load a mask for a specific country.
+
+    Parameters
+    ----------
+
+    country : str
+        The country to be masked.
+
+    pop_weights : int
+        The population weights to be applied.
+
+    Returns
+    -------
+
+    ds : xarray.Dataset
+        The masked dataset.
+
+    """
+
+    # Identify an appropriate shapefile for the country
+    countries_shp = shpreader.natural_earth(
+        resolution="10m", category="cultural", name="admin_0_countries"
+    )
+
+    # Find the country
+    country_shp = None
+    for country_shp in shpreader.Reader(countries_shp).records():
+        if country_shp.attributes["NAME_LONG"] == country:
+            print("Found the country!")
+
+            # Load using geopandas
+            country_shp_gp = gpd.read_file(countries_shp)
+
+            # Filter the dataframe to only include the row for the UK
+            country_shp_gp = country_shp_gp[country_shp_gp["NAME_LONG"] == country]
+
+    # Ensure that the 'numbers' column exists in the geodataframe
+    if "numbers" not in country_shp_gp.columns:
+        country_shp_gp["numbers"] = np.array([1])
+
+    # Create the mask using the regionmask and geopandas
+    country_mask_poly = regionmask.from_geopandas(
+        country_shp_gp,
+        names="NAME_LONG",
+        abbrevs="ABBREV",
+        numbers="numbers",
+    )
+
+    # Ensure the mask has 1's where the country is and 0's where it isn't
+    print(f"Country mask: {country_mask_poly}")
+
+    print("Exiting the script")
+    sys.exit()
+
+
+    return country_mask_poly
 
 # define a function which saves the data
 def save_wind_data(
