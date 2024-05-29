@@ -100,7 +100,7 @@ def load_obs_data(
     engine: str = "netcdf4",
     parallel: bool = True,
     bias_correct_wind: bool = True,
-    bias_correct_file: str = "/home/users/pn832950/UREAD_energy_models_demo_scripts/ERA5_turbine_array_total_BC_v16_hourly.nc",
+    bias_correct_file: str = "/home/users/pn832950/UREAD_energy_models_demo_scripts/ERA5_speed100m_mean_factor_v16_hourly.npy",
     preprocess: callable = preprocess,
 ):
     """
@@ -196,11 +196,11 @@ def load_obs_data(
     # if bias correction is required
     if bias_correct_wind:
         # Load the bias correction data
-        bc = xr.open_dataset(bias_correct_file)
+        bc = np.load(bias_correct_file)
 
         # Convert the DataArrays to numpy arrays
         si100_name_np = ds["si100"].values
-        bc_totals_np = bc["totals"].values
+        bc_totals_np = bc
 
         # create a new numpy array to store the result
         si100_bc_np = np.zeros(np.shape(si100_name_np))
@@ -834,7 +834,6 @@ def main():
 
     # Ptint the time taken
     print(f"Time taken: {end_time - start_time}")
-
 
     # # print that we are exiting the function
     print("Exiting the function.")
