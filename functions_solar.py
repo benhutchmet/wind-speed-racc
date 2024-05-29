@@ -154,8 +154,8 @@ def main():
     # Hard code the years for testing
     first_year = 1960
     last_year = 1960
-    last_month = 1
-    first_month = 1
+    last_month = 2
+    first_month = 2
 
     # Set up the paths to the RSDS data
     S2S4E_dir_rsds = "/storage/silver/S2S4E/energymet/ERA5/RSDS/native_grid_hourly/"
@@ -192,7 +192,7 @@ def main():
     )
 
     # Loop over countries
-    for country in tqdm(dicts.country_list_nuts0[:5], desc="Looping over countries"):
+    for country in tqdm(dicts.country_list_nuts0, desc="Looping over countries"):
         # Print the country which we are processing
         print(f"Processing country: {country}")
 

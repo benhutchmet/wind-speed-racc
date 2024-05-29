@@ -471,6 +471,18 @@ def load_country_mask(
         ds.isel(time=0), lon_name="longitude", lat_name="latitude"
     )
 
+    if country == "United Kingdom":
+        print("Masking out Northern Ireland.")
+        # If the country is the UK then mask out Northern Ireland
+        country_mask = country_mask.where(
+            ~(
+                (country_mask.latitude < 55.3)
+                & (country_mask.latitude > 54.0)
+                & (country_mask.longitude < -5.0)
+            ),
+            other=np.nan,
+        )
+
     # extract the values of this mask
     country_mask_vals = country_mask_ds.values
 
