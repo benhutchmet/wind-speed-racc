@@ -239,6 +239,28 @@ def load_obs_data(
 
     return ds
 
+# define a function to preprocess rsds
+def preprocess_rsds(
+    ds: xr.Dataset,
+) -> xr.Dataset:
+    """
+    Preprocess the rsds data.
+
+    Parameters
+    ----------
+
+    ds : xarray.Dataset
+        The dataset to be preprocessed.
+
+    Returns
+    -------
+
+    ds : xarray.Dataset
+        The preprocessed dataset.
+
+    """
+
+    return ds
 
 # define another preprocessing function for temperature
 def preprocess_temp(
@@ -567,7 +589,7 @@ def create_wind_power_data(
     print("Total MW shape:", total_MW.shape)
 
     # print the installed capacity
-    print(f"Installed capacity: {total_MW} for {country}")
+    print(f"Installed capacity: {str(np.sum(total_MW))} for {country}")
 
     # Depending on the type of wind farm, load in the appropriate power curve
     if ons_ofs == "ons":
@@ -802,7 +824,7 @@ def main():
     cfs_df = pd.DataFrame()
 
     # Loop over the countries
-    for country in tqdm(dicts.country_list_nuts0, desc="Looping over countries"):
+    for country in tqdm(dicts.country_list_nuts0[-2:], desc="Looping over countries"):
         print(f"Country: {country}")
 
         # if country is in ["Macedonia"] skip
@@ -855,13 +877,13 @@ def main():
     # set up the path
     path = os.path.join(output_dir, fname)
 
-    # if the path doesn't exist, create it
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # # if the path doesn't exist, create it
+    # if not os.path.exists(output_dir):
+    #     os.makedirs(output_dir)
 
-    # if the path doesn;t already exist, save the data
-    if not os.path.exists(path):
-        cfs_df.to_csv(path)
+    # # if the path doesn;t already exist, save the data
+    # if not os.path.exists(path):
+    #     cfs_df.to_csv(path)
 
     # # Save the wind power data frame
     # save_wind_power_data(
