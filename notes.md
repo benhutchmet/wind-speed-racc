@@ -25,3 +25,10 @@
     * 2021 wind farm distributions: */home/users/zd907959/code_folders/CLEARHEADS/wind_power_model/data/{COUNTRY}windfarm_dist_{ons_ofs}_2021.nc*
     * Future wind farm distributions: */home/users/zd907959/code_folders/CLEARHEADS/wind_power_model/data/{COUNTRY}windfarm_dist_{ons_ofs}_future.nc*
     * Or any more up-to-date distributions (CCC 2024/2035?) or how could I scrape this data myself from windpower.net?
+
+* Solar power distributions:
+    * Currently not using anything
+    * For CLEARHEADS there are two .nc files which could be useful:
+        * Distribution of UK solar farms - */home/users/zd907959/code_folders/CLEARHEADS/solar_power_model/data/United_Kingdom_solar_farm_dist.nc*
+        * Distribution of European solar farms - */home/users/zd907959/code_folders/CLEARHEADS/solar_power_model/data/Europe_solar_farm_dist.nc*
+    * Are these likely to have changed since? Are there more up-to-date versions available? Or is there a way I can updated/scrape the data myself?
