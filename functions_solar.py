@@ -199,6 +199,7 @@ def main():
         # if country is in ["Macedonia"] skip
         if country in ["Macedonia"]:
             print(f"Skipping {country}")
+            continue
 
         # pass the data to the solar_PV_model function
         df = solar_PV_model(

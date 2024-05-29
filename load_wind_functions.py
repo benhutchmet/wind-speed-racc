@@ -474,11 +474,11 @@ def load_country_mask(
     if country == "United Kingdom":
         print("Masking out Northern Ireland.")
         # If the country is the UK then mask out Northern Ireland
-        country_mask = country_mask.where(
+        country_mask_ds = country_mask_ds.where(
             ~(
-                (country_mask.latitude < 55.3)
-                & (country_mask.latitude > 54.0)
-                & (country_mask.longitude < -5.0)
+                (country_mask_ds.latitude < 55.3)
+                & (country_mask_ds.latitude > 54.0)
+                & (country_mask_ds.longitude < -5.0)
             ),
             other=np.nan,
         )
