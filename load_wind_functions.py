@@ -23,6 +23,9 @@ from tqdm import tqdm
 # Specific imports
 from ncdata.iris_xarray import cubes_to_xarray, cubes_from_xarray
 
+# Import dictionaries
+import dictionaries as dicts
+
 
 # Define the function for preprocessing the data
 def preprocess(
@@ -86,6 +89,7 @@ def preprocess(
     ds = ds.drop_vars([u100_name, v100_name, u10_name, v10_name, t2m_name, msl_name])
 
     return ds
+
 
 # Define a function to load the 100m wind speed data from the CLEARHEADS and S2S4E directories
 # S2S4E - ERA5_1hr_2020_12_DET.nc
@@ -486,6 +490,23 @@ def create_wind_power_data(
     # glob the file
     installed_capacities_files = glob.glob(installed_capacities_file)
 
+    if len(installed_capacities_files) != 1:
+        print(f"Installed capacities file not found: {installed_capacities_files}")
+        print(f"For country: {country}")
+
+        # Extract the time
+        time = ds["time"].values
+
+        # Create an array full of NaNs with length time
+        cfs = np.full(len(time), np.nan)
+
+        # Print that we are returning the NaNs
+        print(
+            f"Returning array of NaNs as installed capacities file not found for country: {country}"
+        )
+
+        return cfs
+
     # assert that the file exists
     assert len(installed_capacities_files) == 1, "Installed capacities file not found."
 
@@ -760,48 +781,84 @@ def main():
 
     # Set up the parameters
     # Just load in a single month of data in this test case
-    last_year = 1950
+    first_year = 2014
+    first_month = 1
+    last_year = 2014  # do countries have wind power in 2014
     last_month = 1
-    country = "United Kingdom"
-    country_name = "United_Kingdom"
     ons_ofs = "ons"
 
     # load the wind data
     ds = load_obs_data(
         last_year=last_year,
         last_month=last_month,
+        first_year=first_year,
+        first_month=first_month,
     )
 
-    # print the data
-    print(ds)
+    # Set up an empty dataframe to store the wind power data
+    cfs_df = pd.DataFrame()
 
-    # Apply the mask
-    ds = apply_country_mask(
-        ds=ds,
-        country=country,
-    )
+    # Loop over the countries
+    for country in tqdm(dicts.country_list_nuts0[:5], desc="Looping over countries"):
+        print(f"Country: {country}")
 
-    # Create the wind power data
-    cfs = create_wind_power_data(
-        ds=ds,
-        ons_ofs=ons_ofs,
-    )
+        # if country is in ["Macedonia"] skip
+        if country in ["Macedonia"]:
+            print(f"Skipping {country}")
+            continue
 
-    # # print the shape of the cfs
-    # print("CFs shape:", np.shape(cfs))
+        # Apply the mask
+        ds_country = apply_country_mask(
+            ds=ds,
+            country=country,
+            pop_weights=0,
+        )
 
-    # # print the values of the cfs
-    # print("CFs values:", cfs)
+        # if country contains a space
+        if " " in country:
+            country_name = country.replace(" ", "_")
+        else:
+            country_name = country
 
-    # # Form the dataframe
-    cfs_df = form_wind_power_dataframe(
-        cfs=cfs,
-        ds=ds,
-        country_name=country_name,
-    )
+        # Create the wind power data
+        cfs = create_wind_power_data(
+            ds=ds_country,
+            country=country_name,
+            ons_ofs=ons_ofs,
+        )
 
-    # print the head of the cfs_df
-    print(f"Head of the dataframe: {cfs_df.head()}")
+        # # Form the dataframe
+        cfs_df_country = form_wind_power_dataframe(
+            cfs=cfs,
+            ds=ds,
+            country_name=country_name,
+        )
+
+        # # print the head of the cfs_df
+        # print(f"Head of the dataframe: {cfs_df.head()}")
+
+        # Append the data to the dataframe
+        cfs_df = pd.concat([cfs_df, cfs_df], axis=1)
+
+    # Print the head of the full capacity factors
+    print(f"Head of the full dataframe: {cfs_df.head()}")
+
+    # Set up a directory to save in
+    output_dir = "/storage/silver/clearheads/Ben/saved_ERA5_data"
+
+    # set up the fname
+    fname = f"ERA5_ons_wind_daily_{first_year}_{first_month}_{last_year}_{last_month}_all_countries.csv"
+
+    # set up the path
+    path = os.path.join(output_dir, fname)
+
+    # if the path doesn't exist, create it
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # if the path doesn;t already exist, save the data
+    if not os.path.exists(path):
+        cfs_df.to_csv(path)
 
     # # Save the wind power data frame
     # save_wind_power_data(
