@@ -561,10 +561,13 @@ def create_wind_power_data(
 
     # Extract the values
     # Flip to get the correct order of lat lon
-    total_MW = np.flip(installed_capacities["totals"].values) / 1000
+    total_MW = np.flip(installed_capacities["totals"].values, axis=0) / 1000.0
 
     # print the shape of the total MW
     print("Total MW shape:", total_MW.shape)
+
+    # print the installed capacity
+    print(f"Installed capacity: {total_MW} for {country}")
 
     # Depending on the type of wind farm, load in the appropriate power curve
     if ons_ofs == "ons":
@@ -799,7 +802,7 @@ def main():
     cfs_df = pd.DataFrame()
 
     # Loop over the countries
-    for country in tqdm(dicts.country_list_nuts0[:5], desc="Looping over countries"):
+    for country in tqdm(dicts.country_list_nuts0, desc="Looping over countries"):
         print(f"Country: {country}")
 
         # if country is in ["Macedonia"] skip
@@ -838,7 +841,7 @@ def main():
         # print(f"Head of the dataframe: {cfs_df.head()}")
 
         # Append the data to the dataframe
-        cfs_df = pd.concat([cfs_df, cfs_df], axis=1)
+        cfs_df = pd.concat([cfs_df, cfs_df_country], axis=1)
 
     # Print the head of the full capacity factors
     print(f"Head of the full dataframe: {cfs_df.head()}")
