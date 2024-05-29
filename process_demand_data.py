@@ -9,11 +9,17 @@ import glob
 import argparse
 import time
 
+import pandas as pd
+from tqdm import tqdm
+
 # Import the functions from the load_wind_functions.py file
 import load_wind_functions as lwf
 
 # Import the demand functions
 import functions_demand as fd
+
+# Import the dictionaries
+import dictionaries as dicts
 
 # define a main function
 def main():
@@ -41,72 +47,83 @@ def main():
     # start a timer
     start_time = time.time()
 
-    # Load the data
-    temp_data = lwf.load_obs_data(
-        last_year=last_year,
-        last_month=last_month,
-        first_year=first_year,
-        first_month=first_month,
-        parallel=False, # will take a while to run
-        bias_correct_wind=False,
-        preprocess=lwf.preprocess_temp
-    )
+    # Initialize an empty dataframe
+    all_data = pd.DataFrame()
 
-    # print the temperature data
-    print(temp_data)
+    # Loop over countries
+    for country in tqdm(dicts.country_list_nuts0, desc="Looping over countries"):
+        # Print the country which we are processing
+        print(f"Processing country: {country}")
 
-    # subset to time series for country as dataframe
-    ds = lwf.apply_country_mask(
-        ds=temp_data,
-        country="United Kingdom",
-    )
+        # if country is in ["Macedonia"] skip
+        if country in ["Macedonia"]:
+            print(f"Skipping {country}")
+            continue
 
-    # print the subset data
-    print(f"Subset data: {ds}")
 
-    # Calculate the mean for the country
-    df = fd.calc_spatial_mean(
-        ds=ds,
-        country="United_Kingdom",
-        variable="t2m",
-    )
+        # Load the data
+        temp_data = lwf.load_obs_data(
+            last_year=last_year,
+            last_month=last_month,
+            first_year=first_year,
+            first_month=first_month,
+            parallel=False, # will take a while to run
+            bias_correct_wind=False,
+            preprocess=lwf.preprocess_temp
+        )
 
-    # print the head of the dataframe
-    print(f"Head of the dataframe: {df.head()}")
 
-    # Calculate the heating degree days and cooling degree days
-    df = fd.calc_hdd_cdd(
-        df=df,
-        temp_suffix="t2m",
-    )
+        # subset to time series for country as dataframe
+        ds = lwf.apply_country_mask(
+            ds=temp_data,
+            country=country,
+        )
 
-    # print the head of the dataframe
-    print(f"Head of the dataframe: {df.head()}")
+        # if country contains spaces, replace these with _
+        country = country.replace(" ", "_")
 
-    # Calculate the weather dependent demand
-    df = fd.calc_national_wd_demand(
-        df=df,
-    )
+        # Calculate the mean for the country
+        df = fd.calc_spatial_mean(
+            ds=ds,
+            country=country,
+            variable="t2m",
+        )
 
-    # print the head of the dataframe
-    print(f"Head of the dataframe: {df.head()}")
+
+        # Calculate the heating degree days and cooling degree days
+        df = fd.calc_hdd_cdd(
+            df=df,
+            temp_suffix="t2m",
+        )
+
+
+        # Calculate the weather dependent demand
+        df = fd.calc_national_wd_demand(
+            df=df,
+        )
+
+        # Append the data for this country to the main DataFrame
+        all_data = pd.concat([all_data, df], axis=1)
+
+    # print the head of the temp data
+    print(all_data.head())
 
     # Set up a directory to save in
     output_dir = "/storage/silver/clearheads/Ben/saved_ERA5_data"
 
     # set up the fname
-    fname = f"ERA5_t2m_daily_{first_year}_{last_year}.nc"
+    fname = f"ERA5_wd_demand_daily_{first_year}_{last_year}_all_countries.csv"
 
     # set up the path
     path = os.path.join(output_dir, fname)
 
-    # # if the path doesn't exist, create it
-    # if not os.path.exists(output_dir):
-    #     os.makedirs(output_dir)
+    # if the path doesn't exist, create it
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    # # if the path doesn;t already exist, save the data
-    # if not os.path.exists(path):
-    #     temp_data.to_netcdf(path)
+    # if the path doesn;t already exist, save the data
+    if not os.path.exists(path):
+        all_data.to_csv(path)
 
     end_time = time.time()
 

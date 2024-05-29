@@ -88,3 +88,8 @@ eu_grid = {
     "lat1": 30,  # degrees north
     "lat2": 80,
 }
+
+# country list Nuts 0
+country_list_nuts0 = ['Austria','Albania','Belarus','Belgium','Bosnia and Herzegovina','Bulgaria','Croatia','Czech Republic','Denmark','Estonia','Finland','France','Germany','Greece','Hungary','Ireland','Italy','Kosovo','Latvia','Lithuania','Luxembourg','Macedonia','Moldova','Montenegro','Netherlands','Norway','Poland','Portugal','Romania','Serbia','Slovakia','Slovenia','Spain','Sweden','Switzerland','Turkey','Ukraine','United Kingdom']
+
+# Subset country list nuts0

@@ -340,8 +340,8 @@ def apply_country_mask(
         numbers="numbers",
     )
 
-    # Print the mask
-    print(f"Country mask: {country_mask_poly}")
+    # # Print the mask
+    # print(f"Country mask: {country_mask_poly}")
 
     # Select the first timestep of the data
     country_mask = country_mask_poly.mask(
@@ -360,8 +360,8 @@ def apply_country_mask(
             other=np.nan,
         )
 
-    # print the country mask
-    print(f"Country mask: {country_mask}")
+    # # print the country mask
+    # print(f"Country mask: {country_mask}")
 
     # Extract the lat and lon values
     mask_lats = country_mask.latitude.values
@@ -371,21 +371,6 @@ def apply_country_mask(
 
     # Select mask for specific region
     sel_country_mask = country_mask.where(country_mask == ID_REGION).values
-
-    # Select the smallest box containing the entire mask
-    # the coordinate points where the mask is not NaN
-    # id_lon = mask_lons[np.where(~np.all(np.isnan(sel_country_mask), axis=0))]
-    # id_lat = mask_lats[np.where(~np.all(np.isnan(sel_country_mask), axis=1))]
-
-    # # print the first and last values of the lat and lon
-    # print(f"Latitude: {id_lat[0]} to {id_lat[-1]}")
-    # print(f"Longitude: {id_lon[0]} to {id_lon[-1]}")
-
-    # # print the shape of ds
-    # print("ds shape:", ds.dims)
-
-    # # print ds
-    # print(ds)
 
     # Select the data within the mask
     out_ds = ds.compute().where(country_mask == ID_REGION)
