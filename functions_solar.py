@@ -106,7 +106,7 @@ def solar_PV_model(
     )
 
     # Load the country mask
-    mask = lwf.load_country_mask(
+    country_mask = lwf.load_country_mask(
         ds=ds_temp,
         country=country,
         pop_weights=0,
@@ -114,10 +114,13 @@ def solar_PV_model(
 
     # Apply the conversions to the data
     # Convert the temperature data from Kelvin to Celsius
-    temp_country_data = temp_country.values - 273.15
+    temp_country_data = temp_country[temp_varname].values - 273.15
+
+    # # convert the temperature data from Kelvin to Celsius
+    # temp_country_data = temp_country_data - 273.15
 
     # Convert the rsds data from J/m^2 to W/m^2
-    rsds_country_data = rsds_country.values / 3600
+    rsds_country_data = rsds_country[rsds_varname].values / 3600
 
     # Calculate the relative efficiency of the panel
     rel_eff_panel = eff_reff * (1 - beta_ref * (temp_country_data - T_ref))
@@ -132,8 +135,15 @@ def solar_PV_model(
     # Any weighted averaging here?
     for i in range(0, len(cap_fac_panel)):
         # Calculate the mean of the capacity factor
-        spatial_mean_solar_cf[i] = np.nanmean(cap_fac_panel[i, :, :])
-    
+        spatial_mean_solar_cf[i] = np.average(cap_fac_panel[i, :, :], weights=country_mask)
+
+    # Create a DataFrame to store the data
+    df = pd.DataFrame(
+        {
+            "time": temp_country.time.values,
+            f"solar_cf_{country}": spatial_mean_solar_cf,
+        }
+    )
     
     return df
 
@@ -182,7 +192,7 @@ def main():
     )
 
     # Loop over countries
-    for country in tqdm(dicts.country_list_nuts0, desc="Looping over countries"):
+    for country in tqdm(dicts.country_list_nuts0[:5], desc="Looping over countries"):
         # Print the country which we are processing
         print(f"Processing country: {country}")
 
@@ -197,6 +207,32 @@ def main():
             country=country,
         )
 
+        # # print the head of the df
+        # print(f"Head of the df for {country}:")
+        # print(df.head())
+
+        # Concat the data to the all_data DataFrame
+        all_data = pd.concat([all_data, df], axis=1)
+
+    # Print the head of the all_data DataFrame
+    print(all_data.head())
+
+    # Set up the output dir
+    output_dir = "/storage/silver/clearheads/Ben/saved_ERA5_data"
+
+    # set up the fname
+    fname = f"ERA5_solar_cfs_daily_{first_year}_{first_month}_{last_year}_{last_month}_all_countries.csv"
+
+    # Save the data to a csv file
+    # if the output directory does not exist, create it
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # if the path does not exist, create it
+    if not os.path.exists(os.path.join(output_dir, fname)):
+        all_data.to_csv(os.path.join(output_dir, fname))
+    else:
+        print(f"File {fname} already exists.")
 
 if __name__ == "__main__":
     main()
