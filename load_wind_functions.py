@@ -8,6 +8,7 @@ import os
 import sys
 import glob
 import argparse
+import time
 
 import numpy as np
 import pandas as pd
@@ -754,10 +755,13 @@ def save_wind_power_data(
 def main():
     # Set up the argument parser
 
+    # set up the start time
+    start_time = time.time()
+
     # Set up the parameters
     # Just load in a single month of data in this test case
     last_year = 1950
-    last_month = 12
+    last_month = 1
     country = "United Kingdom"
     country_name = "United_Kingdom"
     ons_ofs = "ons"
@@ -796,17 +800,20 @@ def main():
         country_name=country_name,
     )
 
-    # Save the wind power data frame
-    save_wind_power_data(
-        cfs_df=cfs_df,
-        output_dir="/storage/silver/clearheads/Ben/csv_files/wind_power/",
-        country_name=country_name,
-        first_year=1950,
-        first_month=1,
-        last_year=last_year,
-        last_month=last_month,
-        ons_ofs=ons_ofs,
-    )
+    # print the head of the cfs_df
+    print(f"Head of the dataframe: {cfs_df.head()}")
+
+    # # Save the wind power data frame
+    # save_wind_power_data(
+    #     cfs_df=cfs_df,
+    #     output_dir="/storage/silver/clearheads/Ben/csv_files/wind_power/",
+    #     country_name=country_name,
+    #     first_year=1950,
+    #     first_month=1,
+    #     last_year=last_year,
+    #     last_month=last_month,
+    #     ons_ofs=ons_ofs,
+    # )
 
     # # extract the first time step
     # cfs_i = cfs[0, :, :]
@@ -821,6 +828,11 @@ def main():
     # print("-------------------")
     # print(ds)
     # print("-------------------")
+
+    # Set up the end time
+    end_time = time.time()
+
+    # Ptint the time taken
 
     # # print that we are exiting the function
     print("Exiting the function.")
