@@ -833,6 +833,8 @@ def main():
     end_time = time.time()
 
     # Ptint the time taken
+    print(f"Time taken: {end_time - start_time}")
+
 
     # # print that we are exiting the function
     print("Exiting the function.")
