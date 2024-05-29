@@ -410,6 +410,7 @@ def apply_country_mask(
 # define a function to return a country mask with 1's where the country is 
 # and 0's where it isn't
 def load_country_mask(
+        ds: xr.Dataset,
         country: str,
         pop_weights: int = 0,
 ) -> xr.Dataset:
@@ -418,6 +419,9 @@ def load_country_mask(
 
     Parameters
     ----------
+
+    ds : xarray.Dataset
+        The dataset to be masked.
 
     country : str
         The country to be masked.
@@ -462,14 +466,27 @@ def load_country_mask(
         numbers="numbers",
     )
 
-    # Ensure the mask has 1's where the country is and 0's where it isn't
-    print(f"Country mask: {country_mask_poly}")
+    # Create a mask for the dataset
+    country_mask_ds = country_mask_poly.mask(
+        ds.isel(time=0), lon_name="longitude", lat_name="latitude"
+    )
 
-    print("Exiting the script")
-    sys.exit()
+    # extract the values of this mask
+    country_mask_vals = country_mask_ds.values
 
+    # Create a mask that is True where country_mask_vals is NaN
+    nan_mask = np.isnan(country_mask_vals)
 
-    return country_mask_poly
+    # Set the NaN values in country_mask_vals to 0
+    country_mask_vals[nan_mask] = 0
+
+    # Set the non-zero values to 1
+    country_mask_vals[country_mask_vals != 0] = 1
+
+    # Print the sum total of tyhe new values (to check that they are all 1's and 0's)
+    print(f"Sum of new country mask values: {str(np.sum(country_mask_vals))}")
+
+    return country_mask_vals
 
 # define a function which saves the data
 def save_wind_data(

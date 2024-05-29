@@ -106,7 +106,11 @@ def solar_PV_model(
     )
 
     # Load the country mask
-    mask = lwf.load_country_mask(country)
+    mask = lwf.load_country_mask(
+        ds=ds_temp,
+        country=country,
+        pop_weights=0,
+    )
 
     # Apply the conversions to the data
     # Convert the temperature data from Kelvin to Celsius
