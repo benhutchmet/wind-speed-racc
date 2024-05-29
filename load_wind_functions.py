@@ -89,7 +89,7 @@ def preprocess(
 # Define a function to load the 100m wind speed data from the CLEARHEADS and S2S4E directories
 # S2S4E - ERA5_1hr_2020_12_DET.nc
 # CLEARHEADS - ERA5_1hr_1978_12_DET.nc
-def load_wind_data(
+def load_obs_data(
     last_year: int,
     last_month: int = 12,
     first_year: int = 1950,
@@ -98,7 +98,7 @@ def load_wind_data(
     CLEARHEADS_dir: str = "/storage/silver/clearheads/Data/ERA5_data/native_grid/T2m_U100m_V100m_MSLP/",
     engine: str = "netcdf4",
     parallel: bool = True,
-    bias_correct: bool = True,
+    bias_correct_wind: bool = True,
     bias_correct_file: str = "/home/users/pn832950/UREAD_energy_models_demo_scripts/ERA5_turbine_array_total_BC_v16_hourly.nc",
     preprocess: callable = preprocess,
 ):
@@ -193,7 +193,7 @@ def load_wind_data(
     ds = ds.resample(time="D").mean()
 
     # if bias correction is required
-    if bias_correct:
+    if bias_correct_wind:
         # Load the bias correction data
         bc = xr.open_dataset(bias_correct_file)
 
@@ -778,7 +778,7 @@ def main():
     ons_ofs = "ons"
 
     # load the wind data
-    ds = load_wind_data(
+    ds = load_obs_data(
         last_year=last_year,
         last_month=last_month,
     )
