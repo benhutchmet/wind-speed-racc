@@ -140,10 +140,13 @@ def solar_PV_model(
     # Create a DataFrame to store the data
     df = pd.DataFrame(
         {
-            "time": temp_country.time.values,
+            "time": pd.to_datetime(temp_country.time.values),
             f"solar_cf_{country}": spatial_mean_solar_cf,
         }
     )
+
+    # Set the time as the index
+    df.set_index("time", inplace=True)
     
     return df
 
@@ -192,7 +195,7 @@ def main():
     )
 
     # Loop over countries
-    for country in tqdm(dicts.country_list_nuts0, desc="Looping over countries"):
+    for country in tqdm(dicts.country_list_nuts0[:5], desc="Looping over countries"):
         # Print the country which we are processing
         print(f"Processing country: {country}")
 
