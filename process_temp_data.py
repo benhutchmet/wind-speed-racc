@@ -42,7 +42,6 @@ def main():
         first_year=first_year,
         parallel=False, # will take a while to run
         bias_correct=False,
-        preprocess=lwf.preprocess_temp
     )
 
     # print the temperature data

@@ -228,13 +228,13 @@ def load_obs_data(
 
         # Set up the variables
         # Power law exponent from UK windpower.net 2021 onshore wind farm heights
-        ds["si100_ons"] = ds["si100_bc"] * (71.0 / 100.0) ** (1.0 / 7.0)
+        # ds["si100_ons"] = ds["si100_bc"] * (71.0 / 100.0) ** (1.0 / 7.0)
 
-        # Same but for offshore
-        # Average height of offshore wind farms
-        ds["si100_ofs"] = ds["si100_bc"] * (92.0 / 100.0) ** (1.0 / 7.0)
+        # # Same but for offshore
+        # # Average height of offshore wind farms
+        # ds["si100_ofs"] = ds["si100_bc"] * (92.0 / 100.0) ** (1.0 / 7.0)
 
-        # Drop si100 in favour of si100_ons and si100_ofs
+        # Drop si100 in favour of si100_bc
         ds = ds.drop_vars(["si100"])
 
     return ds
