@@ -88,7 +88,6 @@ def main():
     # start a timer
     start_time = time.time()
 
-
     # depending on the variable name, load the data
     if variable_name == "wind":
         print("Loading the wind data.")
@@ -106,6 +105,8 @@ def main():
         temp_data = lwf.load_obs_data(
             last_year=last_year,
             first_year=first_year,
+            S2S4E_dir="/storage/silver/S2S4E/energymet/ERA5/RSDS/native_grid_hourly/",
+            CLEARHEADS_dir="/storage/silver/clearheads/Data/ERA5_data/native_grid/RSDS/",
             parallel=False, # will take a while to run
             bias_correct_wind=False, # don't bias correct for wind speed
             preprocess=lwf.preprocess_rsds,
