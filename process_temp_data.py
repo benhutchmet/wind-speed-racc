@@ -15,7 +15,7 @@ import load_wind_functions as lwf
 # define a main function
 def main():
     """
-    Main function for processing the hourly temperature data into daily temperature data
+    Main function for processing the hourly wind data into daily wind data
     for a given country and given year.
     
     Parameters:
@@ -37,7 +37,7 @@ def main():
     start_time = time.time()
 
     # Load the data
-    temp_data = lwf.load_wind_data(
+    temp_data = lwf.load_obs_data(
         last_year=last_year,
         first_year=first_year,
         parallel=False, # will take a while to run
@@ -52,7 +52,7 @@ def main():
     output_dir = "/storage/silver/clearheads/Ben/saved_ERA5_data"
 
     # set up the fname
-    fname = f"ERA5_t2m_daily_{first_year}_{last_year}.nc"
+    fname = f"ERA5_wind_daily_{first_year}_{last_year}.nc"
 
     # set up the path
     path = os.path.join(output_dir, fname)
