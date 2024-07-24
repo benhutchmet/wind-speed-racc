@@ -106,6 +106,7 @@ def load_obs_data(
     bias_correct_wind: bool = True,
     bias_correct_file: str = "/home/users/pn832950/UREAD_energy_models_demo_scripts/ERA5_speed100m_mean_factor_v16_hourly.npy",
     preprocess: callable = preprocess,
+    daily_mean: bool = False,
 ):
     """
     Load the 100m wind speed data from the CLEARHEADS and S2S4E directories.
@@ -142,6 +143,12 @@ def load_obs_data(
 
     bias_correct_file : str
         The file containing the bias correction data.
+
+    preprocess : callable
+        The function to preprocess the data.
+
+    daily_mean : bool
+        Whether to take a daily mean
 
     Returns
     -------
@@ -194,8 +201,9 @@ def load_obs_data(
     # chunk the data
     ds = ds.chunk({"time": "auto", "latitude": "auto", "longitude": "auto"})
 
-    # Take a daily mean
-    ds = ds.resample(time="D").mean()
+    if daily_mean:
+        # Take a daily mean
+        ds = ds.resample(time="D").mean()
 
     # if bias correction is required
     if bias_correct_wind:

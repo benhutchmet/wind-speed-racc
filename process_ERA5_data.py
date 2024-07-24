@@ -128,13 +128,15 @@ def main():
 
     # if the path doesn't exist, create it
     if not os.path.exists(output_dir):
+        print(f"Creating the directory: {output_dir}")
         os.makedirs(output_dir)
 
-    # if the path doesn;t already exist, save the data
+    # if the path doesn't already exist, save the data
     if not os.path.exists(path):
+        print(f"Saving the data to: {path}")
         temp_data.to_netcdf(path)
 
-        end_time = time.time()
+    end_time = time.time()
 
     # print the time taken
     print(f"Time taken: {end_time - start_time} seconds.")
