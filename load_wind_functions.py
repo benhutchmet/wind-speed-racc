@@ -90,6 +90,20 @@ def preprocess(
 
     return ds
 
+# define a function preprocess_mslp
+def preprocess_mslp(
+    ds: xr.Dataset,
+    drop_var_names: list = ["u100", "v100", "u10", "v10", "t2m"],
+) -> xr.Dataset:
+    """
+    Preprocess the mean sea level pressure data by dropping all of the other
+    variables apart from MSLP.
+    """
+
+    # Drop all variables apart from MSLP
+    ds = ds.drop_vars(drop_var_names)
+
+    return ds
 
 # Define a function to load the 100m wind speed data from the CLEARHEADS and S2S4E directories
 # S2S4E - ERA5_1hr_2020_12_DET.nc

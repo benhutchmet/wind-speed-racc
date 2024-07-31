@@ -99,6 +99,18 @@ def main():
             bias_correct_wind=True, # bias correct for wind speed
             preprocess=lwf.preprocess,
         )
+    elif variable_name in ["msl", "psl", "mslp"]:
+        # print that we are loading the mslp data
+        print("Loading the mslp data.")
+
+        # load the data
+        temp_data = lwf.load_obs_data(
+            last_year=last_year,
+            first_year=first_year,
+            parallel=False, # will take a while to run
+            bias_correct_wind=False, # don't bias correct for wind speed
+            preprocess=lwf.preprocess_mslp,
+        )
     elif variable_name == "rsds":
         print("Loading the rsds data.")
         # Load the data
