@@ -10,7 +10,7 @@
 
 # time limit and memory allocation 
 #SBATCH --time=04:00:00 # 4 hours
-#SBATCH --mem=50G # 200GB
+#SBATCH --mem=150G # 200GB
 
 # 'short' is the default partition, with max time of 24h
 # longer jobs are submitted to the partition 'long'
