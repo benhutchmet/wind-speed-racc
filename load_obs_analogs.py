@@ -196,5 +196,7 @@ def main():
         NUTS9_country_choice=country,
     )
 
+    # Load the clmate data and convert to a time series of area agg data
+
 if __name__ == "__main__":
     main()
