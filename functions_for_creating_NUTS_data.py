@@ -1037,7 +1037,7 @@ def load_appropriate_mask(
         else:
             country_mask = load_country_mask(
                 COUNTRY,
-                "/gws/nopw/j04/canari/users/benhutch/ERA5/",
+                "/storage/silver/clearheads/Data/ERA5_data/native_grid/T2m_U100m_V100m_MSLP/",
                 "ERA5_1hr_1950_01_DET.nc",
                 "t2m",
                 pop_weights,
