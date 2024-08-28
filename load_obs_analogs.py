@@ -29,6 +29,7 @@ import iris
 import cftime
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Specific imports
 from tqdm import tqdm
@@ -359,6 +360,18 @@ def main():
 
     # print the country aggregate
     print(country_aggregate)
+
+    # set up a DataFrame
+    df = pd.DataFrame(country_aggregate, index=time_values_fix, columns=["UK_wp"])
+
+    # print the DataFrame
+    print(df)
+
+    # plot the DataFrame
+    df.plot()
+
+    # save the plot to a file
+    plt.savefig("/home/users/pn832950/100m_wind/plots/UK_wp.png")
 
 if __name__ == "__main__":
     main()
