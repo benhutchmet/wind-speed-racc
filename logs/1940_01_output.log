@@ -1,0 +1,32 @@
+Traceback (most recent call last):
+  File "/home/users/pn832950/100m_wind/downloading_ERA5/download_ERA5_hourly_surface_fields_even_bigger_for_CCC.py", line 86, in <module>
+    main()
+  File "/home/users/pn832950/100m_wind/downloading_ERA5/download_ERA5_hourly_surface_fields_even_bigger_for_CCC.py", line 77, in main
+    download_ERA5_to_RACC(
+  File "/home/users/pn832950/100m_wind/downloading_ERA5/download_ERA5_hourly_surface_fields_even_bigger_for_CCC.py", line 61, in download_ERA5_to_RACC
+    client.retrieve(dataset, request, target)
+  File "/home/users/pn832950/.conda/envs/bens-racc-env2/lib/python3.11/site-packages/cads_api_client/legacy_api_client.py", line 153, in retrieve
+    submitted = self.logging_decorator(self.client.submit_and_wait_on_result)(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/users/pn832950/.conda/envs/bens-racc-env2/lib/python3.11/site-packages/cads_api_client/legacy_api_client.py", line 136, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/users/pn832950/.conda/envs/bens-racc-env2/lib/python3.11/site-packages/cads_api_client/api_client.py", line 78, in submit_and_wait_on_result
+    return self.retrieve_api.submit_and_wait_on_result(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/users/pn832950/.conda/envs/bens-racc-env2/lib/python3.11/site-packages/cads_api_client/processing.py", line 536, in submit_and_wait_on_result
+    remote = self.submit(collection_id, retry_options=retry_options, **request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/users/pn832950/.conda/envs/bens-racc-env2/lib/python3.11/site-packages/cads_api_client/processing.py", line 528, in submit
+    status_info = self.process_execute(
+                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/users/pn832950/.conda/envs/bens-racc-env2/lib/python3.11/site-packages/cads_api_client/processing.py", line 495, in process_execute
+    return StatusInfo.from_request(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/users/pn832950/.conda/envs/bens-racc-env2/lib/python3.11/site-packages/cads_api_client/processing.py", line 84, in from_request
+    cads_raise_for_status(response)
+  File "/home/users/pn832950/.conda/envs/bens-racc-env2/lib/python3.11/site-packages/cads_api_client/processing.py", line 55, in cads_raise_for_status
+    raise requests.exceptions.HTTPError(message, response=response)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://cds-beta.climate.copernicus.eu/api/retrieve/v1/processes/reanalysis-era5-single-levels/execute
+required licences not accepted
+required licences not accepted; please accept the following licences to proceed: [{'id': 'licence-to-use-copernicus-products', 'revision': 12}]

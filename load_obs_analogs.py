@@ -15,7 +15,7 @@ countries and regions across Europe.
 Usage:
 ------
 
-$ python load_obs_analogs.py
+$ python load_obs_analogs.py {member}
 
 """
 
@@ -24,6 +24,7 @@ import os
 import sys
 import glob
 import time
+import argparse
 
 # Import third-party libraries
 import iris
@@ -52,17 +53,29 @@ def main():
     v100_name = "v100"
     start_date = "1960-11-01 00:00:00"
 
+    # Set up the argument parser
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--member', type=int, default=2, help='an integer for the member')
+    parser.add_argument('--ons_ofs', type=str, default='ofs', help='a string for the ons_ofs')
+    parser.add_argument('--wp_weights', type=int, default=1, help='an integer for the wp_weights')
+
+    # Parse the arguments
+    args = parser.parse_args()
+
     # Set up the parameters
     country = "United Kingdom"
     nuts_level = 0
     pop_weights = 0
     sp_weights = 0
     # wp_weights = 0 # for no location weighting
-    wp_weights = 1  # for location weighting
+    wp_weights = args.wp_weights  # for location weighting
     wp_sim = 0  # current distribution from thewindpower.net
-    ons_ofs = "ons"  # verify onshore first (offshore worst)
+    ons_ofs = args.ons_ofs  # verify onshore first (offshore worst)
     field_str = "wp"  # wind power
     cc_flag = 0  # no climate change
+
+    # Set up the member
+    member = args.member
 
     # if wp_weights == 0 then raise value error
     if wp_weights == 0:
@@ -76,7 +89,7 @@ def main():
     analogs = analogs.drop(columns=["Unnamed: 0"])
 
     # subset to the first member
-    analogs = analogs[analogs["member"] == 1]
+    analogs = analogs[analogs["member"] == member]
 
     # extract the time values as a list
     time_values = analogs["time"].values
@@ -401,14 +414,27 @@ def main():
     # plot the DataFrame
     df.plot()
 
+    # plot the mean as a horizontal line
+    plt.axhline(y=np.nanmean(country_aggregate), color="r", linestyle="--")
+
+    # include a text box with the mean in the top left
+    plt.text(
+        0.05,
+        0.95,
+        f"Mean: {np.nanmean(country_aggregate):.2f}",
+        ha="left",
+        va="top",
+        transform=plt.gca().transAxes,
+    )
+
     # include a title
-    plt.title("UK Wind Power Capacity Factor for member 1, init 1960-11-01")
+    plt.title(f"UK Wind Power Capacity Factor for member {member} 1960-11-01")
 
     # set up the time
     save_time = time.strftime("%Y-%m-%d_%H:%M:%S")
 
     # save the plot to a file
-    plt.savefig(f"/home/users/pn832950/100m_wind/plots/UK_wp_{save_time}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.png")
+    plt.savefig(f"/home/users/pn832950/100m_wind/plots/UK_wp_{save_time}_member_{member}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.png")
 
 if __name__ == "__main__":
     main()
