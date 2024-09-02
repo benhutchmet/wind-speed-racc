@@ -23,6 +23,7 @@ $ python load_obs_analogs.py
 import os
 import sys
 import glob
+import time
 
 # Import third-party libraries
 import iris
@@ -56,8 +57,8 @@ def main():
     nuts_level = 0
     pop_weights = 0
     sp_weights = 0
-    wp_weights = 0 # for no location weighting
-    # wp_weights = 1  # for location weighting
+    # wp_weights = 0 # for no location weighting
+    wp_weights = 1  # for location weighting
     wp_sim = 0  # current distribution from thewindpower.net
     ons_ofs = "ons"  # verify onshore first (offshore worst)
     field_str = "wp"  # wind power
@@ -352,8 +353,19 @@ def main():
     # set zeros to NaNs where the mask is zero
     cf[cf == 0.0] = np.nan
 
-    # set up the country aggregate
-    country_aggregate = np.nanmean(np.nanmean(cf, axis=2), axis=1)
+
+    # if no weights are used anywhere:
+    if np.sum(pop_weights + sp_weights + wp_weights) == 0:
+        print("No weights used")
+        country_aggregate = np.nanmean(np.nanmean(cf, axis=2), axis=1)
+        # if weights are usef somewhere
+    elif np.sum(pop_weights + sp_weights + wp_weights) > 0:
+        print("One of: pop_weights, sp_weights, wp_weights is greater than zero")
+        country_aggregate = np.nansum(np.nansum(cf, axis=2), axis=1) / np.nansum(
+            country_mask
+        )
+    else:
+        print("Problem with weights")
 
     # make sure any zeros are set to NaN
     country_aggregate[country_aggregate == 0.0] = np.nan
@@ -370,8 +382,14 @@ def main():
     # plot the DataFrame
     df.plot()
 
+    # include a title
+    plt.title("UK Wind Power Capacity Factor for member 1, init 1960-11-01")
+
+    # set up the time
+    current_time = time.strftime("%Y-%m-%d_%H:%M:%S")
+
     # save the plot to a file
-    plt.savefig("/home/users/pn832950/100m_wind/plots/UK_wp.png")
+    plt.savefig(f"/home/users/pn832950/100m_wind/plots/UK_wp_{current_time}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.png")
 
 if __name__ == "__main__":
     main()
