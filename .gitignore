@@ -9,3 +9,5 @@ power_curve/*.csv
 csv_files/*.csv
 
 __pycache__/*.pyc
+
+plots/*.png

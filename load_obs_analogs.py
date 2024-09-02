@@ -64,6 +64,11 @@ def main():
     field_str = "wp"  # wind power
     cc_flag = 0  # no climate change
 
+    # if wp_weights == 0 then raise value error
+    if wp_weights == 0:
+        print("wp_weights is zero, code only works for wp_weights = 1")
+        raise ValueError("wp_weights must be 1")
+
     # Load the analogs
     analogs = pd.read_csv(analogs_path)
 
@@ -130,11 +135,11 @@ def main():
     cube_list_v100 = []
 
     # loop through the time values
-    for i, time in enumerate(time_values):
+    for i, time_this in enumerate(time_values):
         # Extract the year, month and day
-        year = time.year
-        month = time.month
-        day = time.day
+        year = time_this.year
+        month = time_this.month
+        day = time_this.day
 
         # # print the year month and day
         # print(f"{year}-{month}-{day}")
@@ -283,6 +288,10 @@ def main():
     pc_winds = np.linspace(0, 50, 501)  # make it finer resolution
     pc_power = np.interp(pc_winds, power_curve_w, power_curve_p)
 
+    # Set up the mask matrix reshape - load all the data for the correct
+    # region and then weight at the end
+    MASK_MATRIX_RESHAPE = np.zeros_like(country_mask) + 1
+
     # load the country weather data and apply the mask
     data_u100 = concatenated_cube_u100.data
     data_v100 = concatenated_cube_v100.data
@@ -311,20 +320,30 @@ def main():
         raise ValueError("ons_ofs must be ons or ofs")
 
     # set up the matrix to be nan where there are zeros
-    country_mask[country_mask == 0] = np.nan
+    MASK_MATRIX_RESHAPE[MASK_MATRIX_RESHAPE == 0.] = np.nan
 
     # apply the mask
     country_masked_data = np.zeros(np.shape(data))
 
     # loop through the data
     for i in range(0, np.shape(data)[0]):
-        country_masked_data[i, :, :] = data[i, :, :] * country_mask
+        country_masked_data[i, :, :] = data[i, :, :] * MASK_MATRIX_RESHAPE
 
     # get the number of hours
     maxqhr = np.shape(country_masked_data)[0]
 
-    # set the total MW as the country mask
-    total_MW = np.zeros_like(country_mask) + 1
+    # if the wp_weights are zero
+    if wp_weights == 0:
+        print("wp_weights is zero")
+        # set the total MW as the country mask
+        total_MW = np.zeros_like(country_mask) + 1
+    # if the wp_weights are greater than zero
+    elif wp_weights == 1:
+        print("wp_weights is one")
+        # set the total MW as the country mask
+        total_MW = country_mask
+    else:
+        raise ValueError("wp_weights must be 0 or 1")
     
     # create an array to fill with capacity factors
     cf = np.zeros_like(country_masked_data)
@@ -386,10 +405,10 @@ def main():
     plt.title("UK Wind Power Capacity Factor for member 1, init 1960-11-01")
 
     # set up the time
-    current_time = time.strftime("%Y-%m-%d_%H:%M:%S")
+    save_time = time.strftime("%Y-%m-%d_%H:%M:%S")
 
     # save the plot to a file
-    plt.savefig(f"/home/users/pn832950/100m_wind/plots/UK_wp_{current_time}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.png")
+    plt.savefig(f"/home/users/pn832950/100m_wind/plots/UK_wp_{save_time}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.png")
 
 if __name__ == "__main__":
     main()
