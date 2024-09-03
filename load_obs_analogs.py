@@ -460,7 +460,7 @@ def main():
     plt.xticks(rotation=45)
 
     # include a title
-    plt.title(f"UK Wind Power Capacity Factor for member {member} 1960-11-01")
+    plt.title(f"UK {ons_ofs} Wind Power Capacity Factor for member {member} 1960-11-01")
 
     # set up the time
     save_time = time.strftime("%Y-%m-%d_%H:%M:%S")
