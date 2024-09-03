@@ -46,15 +46,22 @@ from functions_for_creating_NUTS_data import (
 
 
 def main():
+    # Start a timer
+    start = time.time()
+
     # Set up the hard coded paths
-    analogs_path = "/home/users/pn832950/100m_wind/csv_files/s1960_lead1-30_month11_mse_df_model_matched_analogs_1960-1965.csv"
+    # For inits 1960-1965, using all obs months (OND for Oct, Nov, Dec, etc.)
+    # between 1960-2020
+    analogs_path = "/home/users/pn832950/100m_wind/csv_files/HadGEM3-GC31-MM_psl_1960_1965_analogs.csv"
     varname = "speed100m"
     u100_name = "u100"
     v100_name = "v100"
     start_date = "1960-11-01 00:00:00"
+    df_save_dir = "/storage/silver/clearheads/Ben/csv_files/wind_power_analogs"
 
     # Set up the argument parser
     parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--init_year', type=int, default=1960, help='an integer for the init_year')
     parser.add_argument('--member', type=int, default=2, help='an integer for the member')
     parser.add_argument('--ons_ofs', type=str, default='ofs', help='a string for the ons_ofs')
     parser.add_argument('--wp_weights', type=int, default=1, help='an integer for the wp_weights')
@@ -85,17 +92,25 @@ def main():
     # Load the analogs
     analogs = pd.read_csv(analogs_path)
 
-    # remove the "Unnamed: 0" column
-    analogs = analogs.drop(columns=["Unnamed: 0"])
+    # # remove the "Unnamed: 0" column
+    # analogs = analogs.drop(columns=["Unnamed: 0"])
 
     # subset to the first member
     analogs = analogs[analogs["member"] == member]
 
+    # Subset to the init year specified
+    analogs = analogs[analogs["init_year"] == args.init_year]
+
     # extract the time values as a list
-    time_values = analogs["time"].values
+    time_values = analogs["min_mse_time"].values
 
     # # Print the time values
-    # print(time_values)
+    print(time_values)
+
+    # print the shape of the time values
+    print(np.shape(time_values))
+
+    # sys.exit()
 
     # convert these to a list of datetime objects using cftime
     time_values = [
@@ -411,8 +426,21 @@ def main():
     # print the DataFrame
     print(df)
 
+    # rename the columns
+    df = df.rename(columns={"index": "time"})
+
+    # make sure that time is a column
+    df = df.reset_index()
+
+    # Set up the the fname for saving
+    save_fname = f"UK_wp_{start_date}_month_11-3_member_{member}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.csv"
+
+    # if the full path does not already exist then save the file
+    if not os.path.exists(os.path.join(df_save_dir, save_fname)):
+        df.to_csv(os.path.join(df_save_dir, save_fname))
+
     # plot the DataFrame
-    df.plot()
+    df.plot(figsize=(10, 5))
 
     # plot the mean as a horizontal line
     plt.axhline(y=np.nanmean(country_aggregate), color="r", linestyle="--")
@@ -425,7 +453,11 @@ def main():
         ha="left",
         va="top",
         transform=plt.gca().transAxes,
+        bbox=dict(facecolor="white", alpha=0.5),
     )
+
+    # shift the xlabels by 45 degrees
+    plt.xticks(rotation=45)
 
     # include a title
     plt.title(f"UK Wind Power Capacity Factor for member {member} 1960-11-01")
@@ -435,6 +467,9 @@ def main():
 
     # save the plot to a file
     plt.savefig(f"/home/users/pn832950/100m_wind/plots/UK_wp_{save_time}_member_{member}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.png")
+
+    # Print the time taken
+    print(f"Time taken: {time.time() - start} seconds")
 
 if __name__ == "__main__":
     main()
