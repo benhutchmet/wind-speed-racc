@@ -6,6 +6,10 @@ power_curve/*.csv
 
 *.out
 
+*.log
+
+logs/*.log
+
 csv_files/*.csv
 
 __pycache__/*.pyc
