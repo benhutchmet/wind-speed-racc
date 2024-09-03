@@ -56,7 +56,6 @@ def main():
     varname = "speed100m"
     u100_name = "u100"
     v100_name = "v100"
-    start_date = "1960-11-01 00:00:00"
     df_save_dir = "/storage/silver/clearheads/Ben/csv_files/wind_power_analogs"
 
     # Set up the argument parser
@@ -68,6 +67,9 @@ def main():
 
     # Parse the arguments
     args = parser.parse_args()
+
+
+    start_date = f"{args.init_year}-11-01 00:00:00"
 
     # Set up the parameters
     country = "United Kingdom"
@@ -433,7 +435,7 @@ def main():
     df = df.reset_index()
 
     # Set up the the fname for saving
-    save_fname = f"UK_wp_{start_date}_month_11-3_member_{member}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.csv"
+    save_fname = f"UK_wp_{args.init_year}_month_11-3_member_{member}_wp_weights_{wp_weights}_country_{country}_ons_ofs_{ons_ofs}_field_str_{field_str}_cc_flag_{cc_flag}_wp_sim_{wp_sim}.csv"
 
     # if the full path does not already exist then save the file
     if not os.path.exists(os.path.join(df_save_dir, save_fname)):
