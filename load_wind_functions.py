@@ -79,14 +79,14 @@ def preprocess(
 
     """
 
-    # Calculate the wind speed at 100m
-    ds[si100_name] = np.sqrt(ds[u100_name] ** 2 + ds[v100_name] ** 2)
+    # # Calculate the wind speed at 100m
+    # ds[si100_name] = np.sqrt(ds[u100_name] ** 2 + ds[v100_name] ** 2)
 
     # Calculate the wind speed at 10m
     ds[si10_name] = np.sqrt(ds[u10_name] ** 2 + ds[v10_name] ** 2)
 
     # Drop the other variables
-    ds = ds.drop_vars([u100_name, v100_name, u10_name, v10_name, t2m_name, msl_name])
+    ds = ds.drop_vars([msl_name])
 
     return ds
 
@@ -169,51 +169,124 @@ def load_obs_data(
     ds : xarray.Dataset
         The 100m and 10m wind speed data.
     """
+
+    # Set up the ben directory
+    ben_dir = "/storage/silver/clearheads/Ben/saved_ERA5_data/download_cds/"
+
+    # assert that first year and last year are the same
+    assert first_year == last_year, "First year and last year must be the same"
+
     # Create an empty list to store the data
     ERA5_files = []
 
     # create a list of the files to load based on the years and months provided
     for year in range(first_year, last_year + 1):
         if year == last_year:
-            for month in range(1, last_month + 1):
+            for month in range(first_month, last_month + 1):
                 if month < 10:
                     month = f"0{month}"
                 else:
                     month = f"{month}"
-                # Choose the directory based on the year
-                directory = CLEARHEADS_dir if year < 1979 else S2S4E_dir
-                # glob the files in the chosen directory
-                for file in glob.glob(directory + f"ERA5_1hr*{year}_{month}*DET.nc"):
-                    ERA5_files.append(file)
+
+                # if year is 1950 or greater
+                if year >= 1950 and year <= 2020:
+                    # Choose the directory based on the year
+                    directory = CLEARHEADS_dir if year < 1979 else S2S4E_dir
+                    # glob the files in the chosen directory
+                    for file in glob.glob(directory + f"ERA5_1hr*{year}_{month}*DET.nc"):
+                        ERA5_files.append(file)
+                else:
+                    # Choose the directory based on the year
+                    directory = ben_dir
+
+                    # print the path
+                    print(f"Path: {directory + f'ERA5_EU_1hr*{year}_{month}*.nc'}")
+
+                    # glob the files in the chosen directory
+                    for file in glob.glob(directory + f"ERA5_EU_1hr*{year}_{month}*.nc"):
+                        ERA5_files.append(file)
         else:
             for month in range(1, 13):
                 if month < 10:
                     month = f"0{month}"
                 else:
                     month = f"{month}"
-                # Choose the directory based on the year
-                directory = CLEARHEADS_dir if year < 1979 else S2S4E_dir
-                # glob the files in the chosen directory
-                for file in glob.glob(directory + f"ERA5_1hr*{year}_{month}*DET.nc"):
-                    ERA5_files.append(file)
+                
+                # if year is 1950 or greater
+                if year >= 1950 and year <= 2020:
+                    # Choose the directory based on the year
+                    directory = CLEARHEADS_dir if year < 1979 else S2S4E_dir
+                    # glob the files in the chosen directory
+                    for file in glob.glob(directory + f"ERA5_1hr*{year}_{month}*DET.nc"):
+                        ERA5_files.append(file)
+                else:
+                    # Choose the directory based on the year
+                    directory = ben_dir
+
+                    # print the path
+                    print(f"Path: {directory + f'ERA5_EU_1hr*{year}_{month}*.nc'}")
+
+                    # glob the files in the chosen directory
+                    for file in glob.glob(directory + f"ERA5_EU_1hr*{year}_{month}*.nc"):
+                        ERA5_files.append(file)
 
     # Print the length of the list
     print("Number of files: ", len(ERA5_files))
 
-    # Load the data
-    ds = xr.open_mfdataset(
-        ERA5_files,
-        combine="by_coords",
-        preprocess=lambda ds: preprocess(ds),
-        engine=engine,
-        parallel=parallel,
-        coords="minimal",
-        data_vars="minimal",
-        compat="override",
-    ).squeeze()
+    # print era5 fikes
+    print(ERA5_files)
 
-    # chunk the data
-    ds = ds.chunk({"time": "auto", "latitude": "auto", "longitude": "auto"})
+    # print ERA5_files[0]
+    # print ERA5_files[1]
+    print(ERA5_files[0])
+
+    # # Load the data
+    # ds = xr.open_mfdataset(
+    #     ERA5_files,
+    #     combine="by_coords",
+    #     preprocess=lambda ds: preprocess(ds),
+    #     engine=engine,
+    #     parallel=parallel,
+    #     coords="minimal",
+    #     data_vars="minimal",
+    #     compat="override",
+    # ).squeeze()
+
+    # # chunk the data
+    # ds = ds.chunk({"time": "auto", "latitude": "auto", "longitude": "auto"})
+
+    # if first year is 1950 or greater
+    if first_year >= 1950 and first_year <= 2020:
+        # load with iris instead
+        cubes = iris.load(ERA5_files[0])
+    else:
+        print("importing the new ERA5 data")
+
+        # Load the ERA5 file with xarray
+        ds = xr.open_dataset(
+            ERA5_files[0],
+            engine=engine,
+        )
+
+        # hard code the variables
+        variables_list = ["u100", "v100", "t2m", "msl"]
+
+        # Set up an empty list for the cubes
+        cubes = []
+
+        # Loop over the variables
+        for variable in variables_list:
+            # Extract the variable
+            ds_this = ds[variable]
+
+            # Remove the standard name
+            ds_this.attrs.pop("standard_name", None)
+
+            # Convert the xarray dataset to an iris cube
+            cube_this = ds_this.to_iris()
+
+            # Append the cube to the list
+            cubes.append(cube_this)
 
     if daily_mean:
         # Take a daily mean
@@ -259,7 +332,7 @@ def load_obs_data(
         # Drop si100 in favour of si100_bc
         ds = ds.drop_vars(["si100"])
 
-    return ds
+    return cubes
 
 # define a function to preprocess rsds
 def preprocess_rsds(

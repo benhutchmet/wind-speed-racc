@@ -9,8 +9,8 @@
 #SBATCH --error=/home/users/pn832950/100m_wind/error/bens_ERA5_job_%j_%a.err
 
 # time limit and memory allocation 
-#SBATCH --time=04:00:00 # 4 hours
-#SBATCH --mem=150G # 200GB
+#SBATCH --time=06:00:00 # 4 hours
+#SBATCH --mem=200G # 200GB
 
 # 'short' is the default partition, with max time of 24h
 # longer jobs are submitted to the partition 'long'

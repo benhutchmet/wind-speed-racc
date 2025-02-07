@@ -96,8 +96,9 @@ def main():
             last_year=last_year,
             first_year=first_year,
             parallel=False, # will take a while to run
-            bias_correct_wind=True, # bias correct for wind speed
+            bias_correct_wind=False, # bias correct for wind speed
             preprocess=lwf.preprocess,
+            daily_mean=True,
         )
     elif variable_name in ["msl", "psl", "mslp"]:
         # print that we are loading the mslp data

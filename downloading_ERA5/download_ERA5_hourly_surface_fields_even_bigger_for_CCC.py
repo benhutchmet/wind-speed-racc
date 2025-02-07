@@ -60,8 +60,6 @@ def download_ERA5_to_RACC(
     
     client.retrieve(dataset, request, target)
     
-
-    
     return None
 
 # define the main function
